@@ -1,0 +1,94 @@
+{
+    "term": "Mario Kart DS track",
+    "segment": 5,
+    "answers": {
+        "Airship Fortress": [
+            "Airship Fortress"
+        ],
+        "Bowsers Castle": [
+            "Bowsers Castle"
+        ],
+        "Cheep Cheep Beach": [
+            "Cheep Cheep Beach"
+        ],
+        "Delfino Square": [
+            "Delfino Square"
+        ],
+        "Desert Hills": [
+            "Desert Hills"
+        ],
+        "DK Pass": [
+            "DK Pass"
+        ],
+        "Figure-8 Circuit": [
+            "Figure-8 Circuit",
+            "Mario Circuit"
+        ],
+        "Luigis Mansion": [
+            "Luigis Mansion"
+        ],
+        "Peach Gardens": [
+            "Peach Gardens"
+        ],
+        "Rainbow Road": [
+            "Rainbow Road"
+        ],
+        "Shroom Ridge": [
+            "Shroom Ridge"
+        ],
+        "Tick Tock Clock": [
+            "Tick Tock Clock"
+        ],
+        "Waluigi Pinball": [
+            "Waluigi Pinball",
+            "Wario Stadium"
+        ],
+        "Yoshi Falls": [
+            "Yoshi Falls"
+        ],
+        "SNES/Choco Island 2": [
+            "SNES Choco Island 2"
+        ],
+        "SNES/Donut Plains 1": [
+            "SNES Donut Plains 1"
+        ],
+        "SNES/Koopa Beach 2": [
+            "SNES Koopa Beach 2"
+        ],
+        "SNES/Mario Circuit 1": [
+            "SNES Mario Circuit 1"
+        ],
+        "N64/Banshee Boardwalk": [
+            "N64 Banshee Boardwalk"
+        ],
+        "N64/Choco Mountain": [
+            "N64 Choco Mountain"
+        ],
+        "N64/Frappe Snowland": [
+            "N64 Frappe Snowland"
+        ],
+        "N64/Moo Moo Farm": [
+            "N64 Moo Moo Farm"
+        ],
+        "GCN/Baby Park": [
+            "GCN Baby Park"
+        ],
+        "GCN/Luigi Circuit": [
+            "GCN Luigi Circuit",
+            "GCN Yoshi Circuit"
+        ],
+        "GCN/Mushroom Bridge": [
+            "GCN Mushroom Bridge"
+        ],
+        "GBA/Bowsers Castle 2": [
+            "GBA Bowsers Castle 2"
+        ],
+        "GBA/Peach Circuit": [
+            "GBA Peach Circuit",
+            "GBA Luigi Circuit"
+        ],
+        "GBA/Sky Garden": [
+            "GBA Sky Garden"
+        ]
+    }
+}

@@ -1,0 +1,7 @@
+*.gzip
+__pycache__/
+messages/
+ranks/
+trivia/
+wordbomb/
+token.txt

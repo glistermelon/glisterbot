@@ -1,0 +1,22 @@
+{
+    "term": "Mario Kart 64 track",
+    "segment": 5,
+    "answers": {
+        "Banshee Boardwalk": "Banshee Boardwalk",
+        "Bowsers Castle": "Bowsers Castle",
+        "Choco Mountain": "Choco Mountain",
+        "DKs Jungle Parkway": "DKs Jungle Parkway",
+        "Kalimari Desert": "Kalimari Desert",
+        "Koopa Troopa Beach": "Koopa Troopa Beach",
+        "Rainbow Road": "Rainbow Road",
+        "Toads Turnpike": "Toads Turnpike",
+        "Moo Moo Farm": [
+            "Moo Moo Farm",
+            "Yoshi Valley"
+        ],
+        "Frappe Snowland": [
+            "Frappe Snowland",
+            "Sherbet Land"
+        ]
+    }
+}
