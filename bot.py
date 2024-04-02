@@ -13,7 +13,6 @@ with open("token.txt") as file:
     TOKEN = file.read()
 
 
-bot = commands.Bot(token=TOKEN, command_prefix='&', intents=discord.Intents.all())
 client = discord.Client(intents=discord.Intents.all())
 tree = app_commands.CommandTree(client)
 

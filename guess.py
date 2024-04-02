@@ -73,7 +73,6 @@ class Guess:
         if not Guess.is_channel_free(self.ctx.channel):
             await self.ctx.response.send_message("There is already a game present in this channel!", ephemeral=True)
             return False
-        print('ADD')
         Guess.instances.add(self.ctx.channel.id)
 
         self.timer = None
@@ -101,7 +100,6 @@ class Guess:
         return True
 
     def clean(self):
-        print('CLEAN')
         events.rm_listener('on_message', self.callback)
         Guess.instances.remove(self.ctx.channel.id)
 
@@ -109,7 +107,6 @@ class Guess:
         if msg.author.bot or (msg.content.strip().lower() not in self.answers) or Guess.is_channel_free(self.ctx.channel):
             return
         self.timer.cancel()
-        print('callback clean')
         self.clean()
         time_taken = round(time.time() - self.begin_time, 1)
         self.begin_embed.description = f"**Answer guessed correctly by <@{msg.author.id}> after {time_taken} seconds!**"
@@ -141,14 +138,12 @@ class Pictionary(Guess):
               )
             )
         except discord.HTTPException:
-            print('error clean')
             self.clean()
             return
         self.begin_time = time.time()
         self.timer = asyncio.current_task()
         events.add_listener("on_message", self.callback, channel = self.ctx.channel)
-        await asyncio.sleep(5)
-        print('pictionary start clean')
+        await asyncio.sleep(20)
         self.clean()
         self.begin_embed.description = "**Nobody guessed correctly within the time limit!**"
         self.begin_embed.colour = 0xFF0000
@@ -183,7 +178,6 @@ class GuessMusic(Guess):
         self.timer = asyncio.current_task()
         events.add_listener("on_message", self.callback, channel = self.ctx.channel)
         await asyncio.sleep(20)
-        print('music start clean')
         self.clean()
         self.begin_embed.description = "**Nobody guessed any of the answers within the time limit!**"
         self.begin_embed.colour = 0xFF0000
