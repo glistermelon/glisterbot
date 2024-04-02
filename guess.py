@@ -40,13 +40,9 @@ bot.tree.add_command(guess_callback)
     ]
 )
 async def guess_music(ctx, category: str, boosters: int = 0):
-    if GuessMusic.is_channel_free(ctx.channel):
-        if category == "mk8" and boosters:
-            category += "bc"
-        game = GuessMusic(ctx, category)
-        await game.start()
-    else:
-        await ctx.response.send_message("There is already a game present in this channel!", ephemeral=True)
+    if category == "mk8" and boosters:
+        category += "bc"
+    await GuessMusic(ctx, category).start()
 
 
 @guess_callback.command(name="pictionary", description="Guess anything from Geometry Dash levels to world flags.")
@@ -56,11 +52,7 @@ async def guess_music(ctx, category: str, boosters: int = 0):
     app_commands.Choice(name="country flags", value="flags")
 ])
 async def pictionary(ctx, category: str):
-    if Pictionary.is_channel_free(ctx.channel):
-        game = Pictionary(ctx, category)
-        await game.start()
-    else:
-        await ctx.response.send_message("There is already a game present in this channel!", ephemeral=True)
+    await Pictionary(ctx, category).start()
 
 
 class Guess:
@@ -68,19 +60,27 @@ class Guess:
 
     @staticmethod
     def is_channel_free(channel):
-        return channel not in Guess.instances
+        return channel.id not in Guess.instances
 
     def __init__(self, ctx, guess_type, category):
 
-        Guess.instances.add(ctx.channel)
-
-        self.category = category
         self.ctx = ctx
+        self.guess_type = guess_type
+        self.category = category
+
+    async def start(self):
+
+        if not Guess.is_channel_free(self.ctx.channel):
+            await self.ctx.response.send_message("There is already a game present in this channel!", ephemeral=True)
+            return False
+        print('ADD')
+        Guess.instances.add(self.ctx.channel.id)
+
         self.timer = None
         self.begin_embed = None
         self.begin_time = None
 
-        dir_name = f"guess/{guess_type}/{category}/options"
+        dir_name = f"guess/{self.guess_type}/{self.category}/options"
         options = [os.path.join(dp, f).replace('\\', '/') for dp, _, fn in os.walk(os.path.expanduser(dir_name))
                    for f in fn]
         choice = options[random.randint(0, len(options) - 1)]
@@ -88,27 +88,28 @@ class Guess:
         choice = choice[choice.rindex("/options/") + len("/options/"): choice.index('.')]
 
         self.info = None
-        with open(f"guess/{guess_type}/{category}/info.json") as file:
+        with open(f"guess/{self.guess_type}/{self.category}/info.json") as file:
             self.info = json.loads(file.read())
         self.term = self.info["term"]
 
-        self.answers = None
         if 'answers' in self.info:
-            self.answers = self.info["answers"][choice]
-            self.answers = [self.answers]
+            self.answers = [self.info["answers"][choice]]
         else:
             self.answers = [choice]
-        for i in range(len(self.answers)):
-            self.answers[i] = self.answers[i].lower()
+        self.answers = [a.lower() for a in self.answers]
+
+        return True
 
     def clean(self):
+        print('CLEAN')
         events.rm_listener('on_message', self.callback)
-        Guess.instances.remove(self.ctx.channel)
+        Guess.instances.remove(self.ctx.channel.id)
 
     async def callback(self, msg):
-        if msg.author.bot or msg.content.strip().lower() not in self.answers:
+        if msg.author.bot or (msg.content.strip().lower() not in self.answers) or Guess.is_channel_free(self.ctx.channel):
             return
         self.timer.cancel()
+        print('callback clean')
         self.clean()
         time_taken = round(time.time() - self.begin_time, 1)
         self.begin_embed.description = f"**Answer guessed correctly by <@{msg.author.id}> after {time_taken} seconds!**"
@@ -122,6 +123,8 @@ class Pictionary(Guess):
         super().__init__(ctx, "pictionary", category)
 
     async def start(self):
+        if not await super().start():
+            return
         embed_title = f"What {self.term} is this?"
         self.begin_embed = discord.Embed(
             title=embed_title,
@@ -129,17 +132,23 @@ class Pictionary(Guess):
             color=0x36393F
         )
         self.begin_embed.set_image(url="attachment://mystery.png")
-        await self.ctx.response.send_message(
-            embed=self.begin_embed,
-            file=discord.File(
-                self.file_path,
-                filename="mystery.png"
+        try:
+            await self.ctx.response.send_message(
+                embed=self.begin_embed,
+              file=discord.File(
+                   self.file_path,
+                    filename="mystery.png"
+              )
             )
-        )
+        except discord.HTTPException:
+            print('error clean')
+            self.clean()
+            return
         self.begin_time = time.time()
         self.timer = asyncio.current_task()
         events.add_listener("on_message", self.callback, channel = self.ctx.channel)
-        await asyncio.sleep(20)
+        await asyncio.sleep(5)
+        print('pictionary start clean')
         self.clean()
         self.begin_embed.description = "**Nobody guessed correctly within the time limit!**"
         self.begin_embed.colour = 0xFF0000
@@ -152,6 +161,8 @@ class GuessMusic(Guess):
         super().__init__(ctx, "music", category)
 
     async def start(self):
+        if not await super().start():
+            return
         song = AudioSegment.from_mp3(self.file_path)
         segment = self.info["segment"] * 1000
         pos = int(math.floor(random.random() * (len(song) - segment)))
@@ -162,12 +173,17 @@ class GuessMusic(Guess):
             description="*You have 20 seconds to answer!*",
             color=0x2F3136
         )
-        await self.ctx.channel.send(file=discord.File(music_io, filename="mystery.mp3"))
-        await self.ctx.response.send_message(embed=self.begin_embed)
+        try:
+            await self.ctx.channel.send(file=discord.File(music_io, filename="mystery.mp3"))
+            await self.ctx.response.send_message(embed=self.begin_embed)
+        except discord.HTTPException:
+            self.clean()
+            return
         self.begin_time = time.time()
         self.timer = asyncio.current_task()
         events.add_listener("on_message", self.callback, channel = self.ctx.channel)
         await asyncio.sleep(20)
+        print('music start clean')
         self.clean()
         self.begin_embed.description = "**Nobody guessed any of the answers within the time limit!**"
         self.begin_embed.colour = 0xFF0000

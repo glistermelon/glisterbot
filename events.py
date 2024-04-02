@@ -1,4 +1,3 @@
-import discord
 import bot
 from types import SimpleNamespace
 
