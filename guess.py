@@ -8,8 +8,6 @@ import random
 from pydub import AudioSegment
 import math
 from io import BytesIO
-from types import SimpleNamespace
-from threading import Lock
 import bot
 import events
 

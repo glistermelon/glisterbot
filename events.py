@@ -9,7 +9,7 @@ def add_listener(event: str, callback, *args, **kwargs):
     if event == 'on_message':
         obj = SimpleNamespace()
         obj.callback = callback
-        obj.channel = kwargs['channel']
+        obj.channel = kwargs['channel'] if 'channel' in kwargs else None
     else:
         obj = callback
     if event in listeners:
@@ -31,5 +31,5 @@ async def on_message(message):
     if 'on_message' not in listeners:
         return
     for listener in listeners['on_message']:
-        if listener.channel == message.channel:
+        if message.channel is None or listener.channel == message.channel:
             await listener.callback(message)
