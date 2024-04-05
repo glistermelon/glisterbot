@@ -6,6 +6,7 @@ import bisect
 from datetime import datetime
 import math
 import random
+import bot
 
 
 class Timespans:
@@ -90,8 +91,8 @@ class LoggedMessage:
         self.role_mentions = [role.id for role in msg.role_mentions]
         self.reactions = [[r.emoji if type(r.emoji) is str else r.emoji.id, r.count] for r in msg.reactions]
 
-        print(
-            f'Logged: "{msg.content}" - {msg.author.name}, {msg.created_at.strftime("%m/%d/%Y, %H:%M:%S")} ({msg.id})')
+        #print(
+        #    f'Logged: "{msg.content}" - {msg.author.name}, {msg.created_at.strftime("%m/%d/%Y, %H:%M:%S")} ({msg.id})')
 
     def to_json(self):
 
@@ -130,90 +131,77 @@ class LoggedMessage:
         return m
 
 
-class Logger:
-    default_file = 'messages.json'
-    global_logger = None
+class TextChannelLogger:
+    save_dir = 'messages'
+    loggers = {}
 
-    def __init__(self):
+    def __init__(self, channel: discord.TextChannel):
         self.timespans = Timespans()
-        self.logs = {}
-
-    def make_global(self):
-        Logger.global_logger = self
+        self.messages = []
+        self.channel = channel
+        TextChannelLogger.loggers[channel.id] = self
 
     def to_json(self):
         return {
-            'messages': {channel_id: [m.to_json() for m in messages] for channel_id, messages in self.logs.items()},
+            'messages': [m.to_json() for m in self.messages],
             'timespans': self.timespans.to_json()
         }
 
     @staticmethod
-    def from_json(data):
-        l = Logger()
+    async def from_json(channel_id, data):
+        channel = await bot.client.fetch_channel(channel_id)
+        if channel is None: return None
+        l = TextChannelLogger(channel)
         l.timespans = Timespans.from_json(data['timespans'])
-        l.logs = {
-            int(channel_id): [LoggedMessage.from_json(m) for m in messages]
-            for channel_id, messages in data['messages'].items()
-        }
+        l.messages = [LoggedMessage.from_json(m) for m in data['messages']]
         return l
 
-    def save_to_file(self, f_name=None):
-        if f_name is None: f_name = Logger.default_file
-        with open(f_name, 'w') as f:
+    def save_to_file(self, save_dir=None):
+        if save_dir is None: save_dir = TextChannelLogger.save_dir
+        with open(f'{save_dir}/{self.channel.id}.json', 'w') as f:
             f.write(json.dumps(self.to_json(), separators=(',', ':')))
 
     @staticmethod
-    def load_from_file(f_name=None):
-        if f_name is None: f_name = Logger.default_file
+    async def load_from_file(channel_id, save_dir=None):
+        if save_dir is None: save_dir = TextChannelLogger.save_dir
         try:
-            with open(f_name) as f:
-                return Logger.from_json(json.loads(f.read()))
+            with open(f'{save_dir}/{channel_id}.json') as f:
+                return await TextChannelLogger.from_json(channel_id, json.loads(f.read()))
         except FileNotFoundError:
-            return Logger()
+            channel = await bot.client.fetch_channel(channel_id)
+            return TextChannelLogger(channel) if channel is not None else None
 
-    async def log_all(self, channel: discord.TextChannel):
+    async def log_all(self):
+    
+        print('Logging: #' + self.channel.name)
 
         log_timespans = Timespans()
         log_timespans.add_timespan(discord.utils.DISCORD_EPOCH // 1000 + 1, math.floor(time.time()))
         log_timespans.remove_timespans(self.timespans)
 
-        if channel.id not in self.logs:
-            self.logs[channel.id] = []
-        msg_logs = self.logs[channel.id]
-
         i = 0
         for timespan in log_timespans.segments:
-            async for msg in channel.history(
+            async for msg in self.channel.history(
                     limit=None,
                     after=datetime.fromtimestamp(timespan.begin - 1),
                     before=datetime.fromtimestamp(timespan.end + 1),
                     oldest_first=True
             ):
-                bisect.insort(msg_logs, LoggedMessage(msg), key=lambda m: m.timestamp)
-                i += 1
-                if i == 200:
-                    i = 0
-                    self.save_to_file()
-
-                    total = 0
-                    for message_list in self.logs.values():
-                        total += len(message_list)
-                    print(total, 'messages logged')
-
+                bisect.insort(self.messages, LoggedMessage(msg), key=lambda m: m.timestamp)
                 self.timespans.add_timespan(discord.utils.DISCORD_EPOCH // 1000 + 1,
                                             math.floor(msg.created_at.timestamp()))
+                i += 1
+                if i == 100:
+                    i = 0
+                    self.save_to_file()
+                    print(len(self.messages), 'messages logged', end='\r')
+        
+        print('')
 
         self.save_to_file()
 
     def get_random_message(self):
-        channels = list(self.logs.keys())
-        i = random.choices([
-            i for i in range(len(channels))
-        ], [
-            len(messages) for messages in self.logs.values()
-        ])[0]
-        messages = self.logs[channels]
-        return messages[random.randrange(len(messages))]
+        return self.messages[random.randrange(len(self.messages))]
 
     def get_messages(self):
         return (msg for _, messages in self.logs.items() for msg in messages)

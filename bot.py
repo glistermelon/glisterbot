@@ -10,7 +10,7 @@ client = discord.Client(intents=discord.Intents.all())
 tree = app_commands.CommandTree(client)
 
 import guess
-import profanity
+#import profanity
 
 # importCommand('frequency')
 # importCommand('top_messagers')
@@ -34,6 +34,6 @@ import log
 @client.event
 async def on_ready():
     # await tree.sync()
-    l = log.Logger.load_from_file()
-    l.make_global()
-    #await l.log_all(await client.fetch_channel(931838136223412239))
+    for channel in await (await client.fetch_guild(931838136223412235)).fetch_channels():
+        if type(channel) is not discord.TextChannel: continue
+        await (await log.TextChannelLogger.load_from_file(channel.id)).log_all()
