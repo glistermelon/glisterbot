@@ -34,6 +34,6 @@ import log
 @client.event
 async def on_ready():
     # await tree.sync()
-    for channel in await (await client.fetch_guild(931838136223412235)).fetch_channels():
-        if type(channel) is not discord.TextChannel: continue
-        await (await log.TextChannelLogger.load_from_file(channel.id)).log_all()
+    l = log.ServerLogger(await client.fetch_guild(931838136223412235))
+    await l.setup()
+    await l.log_all()

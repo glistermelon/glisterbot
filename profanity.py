@@ -31,14 +31,14 @@ with open('profanity.txt') as f:
 @app_commands.describe(user="who to count profanity usage for")
 async def profanity(ctx, user: discord.User):
 
-    if log.Logger.global_logger is None:
+    if log.TextChannelLogger.get_logger() is None:
         await ctx.response.send_message("This command isn't available right now. Try again soon!", ephemeral=True)
         return
 
     await ctx.response.defer()
 
     counts = {key: {w: 0 for w in words} for key, words in profanity_dict.items()}
-    for message in log.Logger.global_logger.get_messages():
+    for message in log.TextChannelLogger.global_logger.messages:
         if message.author != user.id:
             continue
         content = message.content.lower().strip()

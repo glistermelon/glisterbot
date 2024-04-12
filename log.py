@@ -7,6 +7,9 @@ from datetime import datetime
 import math
 import random
 import bot
+import asyncio
+import shutil
+import os
 
 
 class Timespans:
@@ -91,7 +94,7 @@ class LoggedMessage:
         self.role_mentions = [role.id for role in msg.role_mentions]
         self.reactions = [[r.emoji if type(r.emoji) is str else r.emoji.id, r.count] for r in msg.reactions]
 
-        #print(
+        # print(
         #    f'Logged: "{msg.content}" - {msg.author.name}, {msg.created_at.strftime("%m/%d/%Y, %H:%M:%S")} ({msg.id})')
 
     def to_json(self):
@@ -133,13 +136,11 @@ class LoggedMessage:
 
 class TextChannelLogger:
     save_dir = 'messages'
-    loggers = {}
 
     def __init__(self, channel: discord.TextChannel):
         self.timespans = Timespans()
         self.messages = []
         self.channel = channel
-        TextChannelLogger.loggers[channel.id] = self
 
     def to_json(self):
         return {
@@ -156,6 +157,13 @@ class TextChannelLogger:
         l.messages = [LoggedMessage.from_json(m) for m in data['messages']]
         return l
 
+    def backup_file(self, save_dir=None):
+        if save_dir is None: save_dir = TextChannelLogger.save_dir
+        if not os.path.exists(f'{save_dir}/backup'): os.mkdir(f'{save_dir}/backup')
+        src = f'{save_dir}/{self.channel.id}.json'
+        dst = f'{save_dir}/backup/{self.channel.id}.json'
+        if os.path.exists(src): shutil.copyfile(src, dst)
+
     def save_to_file(self, save_dir=None):
         if save_dir is None: save_dir = TextChannelLogger.save_dir
         with open(f'{save_dir}/{self.channel.id}.json', 'w') as f:
@@ -171,8 +179,10 @@ class TextChannelLogger:
             channel = await bot.client.fetch_channel(channel_id)
             return TextChannelLogger(channel) if channel is not None else None
 
-    async def log_all(self):
-    
+    async def log_all(self, sleep=None):
+
+        self.backup_file()
+
         print('Logging: #' + self.channel.name)
 
         log_timespans = Timespans()
@@ -180,6 +190,7 @@ class TextChannelLogger:
         log_timespans.remove_timespans(self.timespans)
 
         i = 0
+        last_check = time.time()
         for timespan in log_timespans.segments:
             async for msg in self.channel.history(
                     limit=None,
@@ -194,14 +205,28 @@ class TextChannelLogger:
                 if i == 100:
                     i = 0
                     self.save_to_file()
-                    print(len(self.messages), 'messages logged', end='\r')
-        
-        print('')
+                    print('\r', len(self.messages), f'messages logged ({int(100 // (time.time() - last_check))} /s)',
+                          end='')
+                    last_check = time.time()
+                    if sleep: await asyncio.sleep(sleep)
 
         self.save_to_file()
 
     def get_random_message(self):
         return self.messages[random.randrange(len(self.messages))]
 
-    def get_messages(self):
-        return (msg for _, messages in self.logs.items() for msg in messages)
+
+class ServerLogger:
+    def __init__(self, server: discord.Guild):
+        self.server = server
+        self.channel_loggers = None
+
+    async def setup(self):
+        self.channel_loggers = [
+            await TextChannelLogger.load_from_file(c.id)
+            for c in await self.server.fetch_channels() if type(c) is discord.TextChannel
+        ]
+
+    async def log_all(self, sleep=None):
+        for logger in self.channel_loggers:
+            await logger.log_all(sleep)
