@@ -9,7 +9,7 @@ with open("token.txt") as file:
 client = discord.Client(intents=discord.Intents.all())
 tree = app_commands.CommandTree(client)
 
-import guess
+#import poker
 #import profanity
 
 # importCommand('frequency')
@@ -28,12 +28,11 @@ import guess
 # importCommand('trivia')
 # importCommand('rankings')
 
-import log
-
 
 @client.event
 async def on_ready():
-    # await tree.sync()
-    l = log.ServerLogger(await client.fetch_guild(931838136223412235))
-    await l.setup()
-    await l.log_all()
+    await tree.sync()
+    print('tree synced')
+    #l = log.ServerLogger(await client.fetch_guild(931838136223412235))
+    #await l.setup()
+    #await l.log_all()

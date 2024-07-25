@@ -90,16 +90,22 @@ class Guess:
         self.term = self.info["term"]
 
         if 'answers' in self.info:
-            self.answers = [self.info["answers"][choice]]
+            self.answers = self.info["answers"][choice]
         else:
-            self.answers = [choice]
+            self.answers = choice
+        if type(self.answers) is not list: self.answers = [self.answers]
         self.answers = [a.lower() for a in self.answers]
+        print(self.answers)
 
         return True
 
     def clean(self):
         events.rm_listener('on_message', self.callback)
-        Guess.instances.remove(self.ctx.channel.id)
+        if self.ctx.channel.id in Guess.instances:
+            Guess.instances.remove(self.ctx.channel.id)
+    
+    def kill_myself(self):
+        del self
 
     async def callback(self, msg):
         if msg.author.bot or (msg.content.strip().lower() not in self.answers) or Guess.is_channel_free(self.ctx.channel):
@@ -110,6 +116,7 @@ class Guess:
         self.begin_embed.description = f"**Answer guessed correctly by <@{msg.author.id}> after {time_taken} seconds!**"
         self.begin_embed.color = 0x00FF00
         await self.ctx.edit_original_response(embed=self.begin_embed)
+        self.kill_myself()
 
 
 class Pictionary(Guess):
@@ -146,6 +153,7 @@ class Pictionary(Guess):
         self.begin_embed.description = "**Nobody guessed correctly within the time limit!**"
         self.begin_embed.colour = 0xFF0000
         await self.ctx.edit_original_response(embed=self.begin_embed)
+        self.kill_myself()
 
 
 class GuessMusic(Guess):
@@ -157,7 +165,7 @@ class GuessMusic(Guess):
         if not await super().start():
             return
         song = AudioSegment.from_mp3(self.file_path)
-        segment = self.info["segment"] * 1000
+        segment = self.info["segment"] * 1000 if "segment" in self.info else 10000
         pos = int(math.floor(random.random() * (len(song) - segment)))
         music_io = BytesIO()
         song[pos: pos + segment].export(music_io, format="mp3")
@@ -180,3 +188,4 @@ class GuessMusic(Guess):
         self.begin_embed.description = "**Nobody guessed any of the answers within the time limit!**"
         self.begin_embed.colour = 0xFF0000
         await self.ctx.edit_original_response(embed=self.begin_embed)
+        self.kill_myself()
