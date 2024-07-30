@@ -89,7 +89,7 @@ class Guess:
             self.info = json.loads(file.read())
         self.term = self.info["term"]
 
-        if choice in self.info['meta']:
+        if 'meta' in self.info and choice in self.info['meta']:
             meta = self.info['meta'][choice]
             if 'author' in meta: self.author = meta['author']
 
