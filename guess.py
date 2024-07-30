@@ -89,8 +89,12 @@ class Guess:
             self.info = json.loads(file.read())
         self.term = self.info["term"]
 
-        if 'answers' in self.info:
-            self.answers = self.info["answers"][choice]
+        if choice in self.info['meta']:
+            meta = self.info['meta'][choice]
+            if 'author' in meta: self.author = meta['author']
+
+        if 'answers' in self.info and choice in self.info['answers']:
+            self.answers = self.info['answers'][choice]
         else:
             self.answers = choice
         if type(self.answers) is not list: self.answers = [self.answers]
@@ -130,17 +134,19 @@ class Pictionary(Guess):
         embed_title = f"What {self.term} is this?"
         self.begin_embed = discord.Embed(
             title=embed_title,
-            description="*You have 20 seconds to answer!*",
+            description='*You have 20 seconds to answer!*',
             color=0x36393F
         )
+        if self.author and type(self.author) is str and len(self.author) > 0: self.begin_embed.set_footer(text=f'Illustrator: {self.author}')
         self.begin_embed.set_image(url="attachment://mystery.png")
         try:
+            print(self.file_path)
             await self.ctx.response.send_message(
                 embed=self.begin_embed,
-              file=discord.File(
-                   self.file_path,
+                file=discord.File(
+                    self.file_path,
                     filename="mystery.png"
-              )
+                )
             )
         except discord.HTTPException:
             self.clean()
