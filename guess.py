@@ -82,7 +82,7 @@ class Guess:
                    for f in fn]
         choice = options[random.randint(0, len(options) - 1)]
         self.file_path = choice
-        choice = choice[choice.rindex("/options/") + len("/options/"): choice.index('.')]
+        choice = choice[choice.rindex("/options/") + len("/options/") : choice.index('.')]
 
         self.info = None
         with open(f"guess/{self.guess_type}/{self.category}/info.json") as file:
@@ -94,7 +94,7 @@ class Guess:
         else:
             self.answers = choice
         if type(self.answers) is not list: self.answers = [self.answers]
-        self.answers = [a.lower() for a in self.answers]
+        self.answers = [a.lower().strip() for a in self.answers]
         print(self.answers)
 
         return True
