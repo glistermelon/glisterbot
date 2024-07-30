@@ -3,7 +3,7 @@ from discord import app_commands
 import json
 
 token = None
-with open("token.txt") as file:
+with open("auth/token.txt") as file:
     token = file.read()
 
 client = discord.Client(intents=discord.Intents.all())
