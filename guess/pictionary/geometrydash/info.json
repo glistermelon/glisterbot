@@ -1,3 +1,251 @@
 {
-    "term": "level"
+    "term": "level",
+    "meta": {
+        "Abyss of Darkness": {
+            "author": "glistermelon"
+        },
+        "Acheron": {
+            "author": "glistermelon"
+        },
+        "Aerial Gleam": {
+            "author": "glistermelon"
+        },
+        "Arctic Lights": {
+            "author": "glistermelon"
+        },
+        "Arcturus": {
+            "author": "glistermelon"
+        },
+        "Bloodbath": {
+            "author": "AsiagoCheese"
+        },
+        "Cognition": {
+            "author": "glistermelon"
+        },
+        "Critical Heat": {
+            "author": "glistermelon"
+        },
+        "Firework": {
+            "author": "glistermelon"
+        },
+        "Hard Machine": {
+            "author": "glistermelon"
+        },
+        "Kenos": {
+            "author": "glistermelon"
+        },
+        "Keres": {
+            "author": "glistermelon"
+        },
+        "Kyouki": {
+            "author": "glistermelon"
+        },
+        "LIMBO": {
+            "author": "glistermelon"
+        },
+        "Mayhem": {
+            "author": "glistermelon"
+        },
+        "Misty Mountains": {
+            "author": "AsiagoCheese"
+        },
+        "Mystic": {
+            "author": "AsiagoCheese"
+        },
+        "NEUTRA": {
+            "author": "glistermelon"
+        },
+        "Nine Circles": {
+            "author": "AsiagoCheese"
+        },
+        "Oblivion": {
+            "author": "glistermelon"
+        },
+        "Omega Interface": {
+            "author": "AsiagoCheese"
+        },
+        "poocubed": {
+            "author": "glistermelon"
+        },
+        "RUTHLESS": {
+            "author": "glistermelon"
+        },
+        "Sakupen Circles": {
+            "author": "glistermelon"
+        },
+        "SARY NEVER CLEAR": {
+            "author": ""
+        },
+        "Shardscapes": {
+            "author": "glistermelon"
+        },
+        "Shukketsu": {
+            "author": "glistermelon"
+        },
+        "Silent Clubstep": {
+            "author": "glistermelon"
+        },
+        "Sinister Silence": {
+            "author": "glistermelon"
+        },
+        "Slaughterhouse": {
+            "author": "glistermelon"
+        },
+        "Sonic Wave Infinity": {
+            "author": "glistermelon"
+        },
+        "Tartarus": {
+            "author": "glistermelon"
+        },
+        "The Golden": {
+            "author": "glistermelon"
+        },
+        "The Hallucination": {
+            "author": "glistermelon"
+        },
+        "The Hell Zone": {
+            "author": "glistermelon"
+        },
+        "Trueffet": {
+            "author": "glistermelon"
+        },
+        "UNKNOWN": {
+            "author": "glistermelon"
+        },
+        "Verdant Landscape": {
+            "author": "glistermelon"
+        },
+        "walter white": {
+            "author": "glistermelon"
+        },
+        "White Space": {
+            "author": "xertun i think?"
+        },
+        "Yatagarasu": {
+            "author": "glistermelon"
+        },
+        "Zodiac": {
+            "author": "glistermelon"
+        },
+        "Eyes in the Water": {
+            "author": "chloe"
+        },
+        "Tunnel of Despair": {
+            "author": "chloe"
+        },
+        "X": {
+            "author": "Pixel"
+        },
+        "Windy Landscape": {
+            "author": "Pixel"
+        },
+        "Wasureta": {
+            "author": "Pixel"
+        },
+        "ABCDEFGHIJKLMNOPQRS": {
+            "author": "Pixel"
+        },
+        "Astral Divinity": {
+            "author": "Pixel"
+        },
+        "Back on Track": {
+            "author": "Pixel"
+        },
+        "Base After Base": {
+            "author": "Pixel"
+        },
+        "VSC": {
+            "author": "Pixel"
+        },
+        "Chromaside": {
+            "author": "Pixel"
+        },
+        "BALLS MOUNTAIN": {
+            "author": "Pixel"
+        },
+        "Congregation": {
+            "author": "Pixel"
+        },
+        "Decode": {
+            "author": "Pixel"
+        },
+        "Falling Up": {
+            "author": "Pixel"
+        },
+        "Final Fantasy": {
+            "author": "Pixel"
+        },
+        "Fingerdash": {
+            "author": "Pixel"
+        },
+        "Future Funk": {
+            "author": "Pixel"
+        },
+        "Glowy": {
+            "author": "Pixel"
+        },
+        "High Life": {
+            "author": "Pixel"
+        },
+        "Peaceful": {
+            "author": "Pixel"
+        },
+        "Plasma Pulse Finale": {
+            "author": "Pixel"
+        },
+        "Scarlet Surge": {
+            "author": "Pixel"
+        },
+        "Stereo Madness": {
+            "author": "Pixel"
+        },
+        "The Seven Seas": {
+            "author": "Pixel"
+        },
+        "Tidal Wave": {
+            "author": "Pixel"
+        },
+        "Ukrainian Power": {
+            "author": "Forgottenbio"
+        },
+        "Black Flag": {
+            "author": "Forgottenbio"
+        },
+        "Calculator Core": {
+            "author": "Forgottenbio"
+        },
+        "Crimson Planet": {
+            "author": "Forgottenbio"
+        },
+        "Deimos": {
+            "author": "Forgottenbio"
+        },
+        "DsinK": {
+            "author": "Forgottenbio"
+        },
+        "fog": {
+            "author": "Forgottenbio"
+        },
+        "Nhelv": {
+            "author": "Forgottenbio"
+        },
+        "no jokes": {
+            "author": "Forgottenbio"
+        },
+        "Ploink": {
+            "author": "Forgottenbio"
+        },
+        "Sand Sailor": {
+            "author": "Forgottenbio"
+        },
+        "sides of my mind": {
+            "author": "Forgottenbio"
+        },
+        "The Paroxysm of Rage": {
+            "author": "Forgottenbio"
+        },
+        "Thinking Space": {
+            "author": "Forgottenbio"
+        }
+    }
 }
