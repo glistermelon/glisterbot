@@ -10,7 +10,9 @@ import math
 from io import BytesIO
 import bot
 import events
-
+import database as db
+from database import sql, sql_conn
+from sqlalchemy.orm import Session
 
 guess_callback = app_commands.Group(name="guess", description="Guessing games!")
 
@@ -52,6 +54,43 @@ async def guess_music(ctx, category: str, boosters: int = 0):
 async def pictionary(ctx, category : str, illustrator : str = None):
     await Pictionary(ctx, category, illustrator).start()
 
+def increment_streak(channel : discord.TextChannel | int, user : discord.User | int, is_pictionary : bool):
+    if type(channel) is not int: channel = channel.id
+    if type(user) is not int: user = user.id
+    with Session(db.engine) as session:
+        data = session.execute(sql.select(db.streak_table).where(db.streak_table.c.CHANNEL == channel)).first()
+        if data is None:
+            session.execute(sql.insert(db.streak_table).values(
+                CHANNEL=channel,
+                PICTIONARY_USER=user if is_pictionary else 0,
+                PICTIONARY=1 if is_pictionary else 0,
+                MUSIC_USER=user if not is_pictionary else 0,
+                MUSIC=1 if not is_pictionary else 0
+            ))
+            session.commit()
+            return 1
+        stmt = sql.update(db.streak_table).where(db.streak_table.c.CHANNEL == channel)
+        streak = None
+        if is_pictionary:
+            if data.PICTIONARY_USER == user:
+                stmt = stmt.values(PICTIONARY=data.PICTIONARY + 1)
+                streak = data.PICTIONARY + 1
+            else:
+                stmt = stmt.values(PICTIONARY=1, PICTIONARY_USER=user)
+                streak = 1
+        else:
+            if data.MUSIC_USER == user:
+                stmt = stmt.values(MUSIC=data.MUSIC + 1)
+                streak = data.MUSIC + 1
+            else:
+                stmt = stmt.values(MUSIC=1, MUSIC_USER=user)
+                streak = 1
+        session.execute(stmt)
+        session.commit()
+        return streak
+
+def reset_streak(channel : discord.TextChannel | int, is_pictionary : bool):
+    increment_streak(channel, 0, is_pictionary)
 
 class Guess:
     instances = set()
@@ -105,7 +144,7 @@ class Guess:
         if type(self.answers) is not list: self.answers = [self.answers]
         self.answers = [a.lower().strip() for a in self.answers]
 
-        # print(self.answers)
+        if isinstance(self, GuessMusic): print(choice, self.answers)
 
         return True
 
@@ -113,9 +152,6 @@ class Guess:
         events.rm_listener('on_message', self.callback)
         if self.ctx.channel.id in Guess.instances:
             Guess.instances.remove(self.ctx.channel.id)
-    
-    def kill_myself(self):
-        del self
 
     async def callback(self, msg):
         if msg.author.bot or (msg.content.strip().lower() not in self.answers) or Guess.is_channel_free(self.ctx.channel):
@@ -126,7 +162,19 @@ class Guess:
         self.begin_embed.description = f"**Answer guessed correctly by <@{msg.author.id}> after {time_taken} seconds!**"
         self.begin_embed.color = 0x00FF00
         await self.ctx.edit_original_response(embed=self.begin_embed)
-        self.kill_myself()
+
+        streak = increment_streak(self.ctx.channel, msg.author, isinstance(self, Pictionary))
+        title = 'You guessed correctly!'
+        if streak > 1: title += f' x{streak}'
+        await msg.channel.send(
+            embed=discord.Embed(
+                title=title,
+                description='I\'m going to implement rewards here!',
+                color=0x00FF00
+            ),
+            reference=msg,
+            mention_author=False
+        )
 
 
 class Pictionary(Guess):
@@ -152,8 +200,6 @@ class Pictionary(Guess):
         err = await super().start(choice_filter)
         if not (type(err) is bool and err):
             await self.ctx.response.send_message(err if type(err) is str else 'An error occurred.', ephemeral=True)
-            self.clean()
-            self.kill_myself()
             return
 
         embed_title = f"What {self.term} is this?"
@@ -184,7 +230,7 @@ class Pictionary(Guess):
         self.begin_embed.description = "**Nobody guessed correctly within the time limit!**"
         self.begin_embed.colour = 0xFF0000
         await self.ctx.edit_original_response(embed=self.begin_embed)
-        self.kill_myself()
+        reset_streak(self.ctx.channel, True)
 
 
 class GuessMusic(Guess):
@@ -193,8 +239,12 @@ class GuessMusic(Guess):
         super().__init__(ctx, "music", category)
 
     async def start(self):
-        if not await super().start():
+
+        err = await super().start()
+        if not (type(err) is bool and err):
+            await self.ctx.response.send_message(err if type(err) is str else 'An error occurred.', ephemeral=True)
             return
+
         song = AudioSegment.from_mp3(self.file_path)
         segment = self.info["segment"] * 1000 if "segment" in self.info else 10000
         pos = int(math.floor(random.random() * (len(song) - segment)))
@@ -219,4 +269,4 @@ class GuessMusic(Guess):
         self.begin_embed.description = "**Nobody guessed any of the answers within the time limit!**"
         self.begin_embed.colour = 0xFF0000
         await self.ctx.edit_original_response(embed=self.begin_embed)
-        self.kill_myself()
+        reset_streak(self.ctx.channel, False)
