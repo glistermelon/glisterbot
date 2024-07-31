@@ -44,13 +44,13 @@ async def guess_music(ctx, category: str, boosters: int = 0):
 
 
 @guess_callback.command(name="pictionary", description="Guess anything from Geometry Dash levels to world flags.")
-@app_commands.describe(category="type of image to guess at")
+@app_commands.describe(category="type of image to guess at", illustrator='see images from a specific illustrator')
 @app_commands.choices(category=[
     app_commands.Choice(name="Geometry Dash levels", value="geometrydash"),
     app_commands.Choice(name="country flags", value="flags")
 ])
-async def pictionary(ctx, category: str):
-    await Pictionary(ctx, category).start()
+async def pictionary(ctx, category : str, illustrator : str = None):
+    await Pictionary(ctx, category, illustrator).start()
 
 
 class Guess:
@@ -66,11 +66,10 @@ class Guess:
         self.guess_type = guess_type
         self.category = category
 
-    async def start(self):
+    async def start(self, choice_filter = None):
 
         if not Guess.is_channel_free(self.ctx.channel):
-            await self.ctx.response.send_message("There is already a game present in this channel!", ephemeral=True)
-            return False
+            return "There is already a game present in this channel!"
         Guess.instances.add(self.ctx.channel.id)
 
         self.timer = None
@@ -78,20 +77,26 @@ class Guess:
         self.begin_time = None
 
         dir_name = f"guess/{self.guess_type}/{self.category}/options"
-        options = [os.path.join(dp, f).replace('\\', '/') for dp, _, fn in os.walk(os.path.expanduser(dir_name))
-                   for f in fn]
-        choice = options[random.randint(0, len(options) - 1)]
-        self.file_path = choice
-        choice = choice[choice.rindex("/options/") + len("/options/") : choice.index('.')]
 
         self.info = None
         with open(f"guess/{self.guess_type}/{self.category}/info.json") as file:
             self.info = json.loads(file.read())
         self.term = self.info["term"]
 
-        if 'meta' in self.info and choice in self.info['meta']:
+        options = [os.path.join(dp, f).replace('\\', '/') for dp, _, fn in os.walk(os.path.expanduser(dir_name))
+                   for f in fn]
+        file_paths = list(options)
+        options = [choice[choice.rindex("/options/") + len("/options/") : choice.index('.')] for choice in options]
+        if choice_filter: options, file_paths = choice_filter(options, file_paths, self.info)
+        if type(options) is str: return options # error
+
+        choice_index = random.randint(0, len(options) - 1)
+        choice = options[choice_index]
+        self.file_path = file_paths[choice_index]
+
+        if isinstance(self, Pictionary) and 'meta' in self.info and choice in self.info['meta']:
             meta = self.info['meta'][choice]
-            if 'author' in meta: self.author = meta['author']
+            if 'author' in meta: self.illustrator = meta['author']
 
         if 'answers' in self.info and choice in self.info['answers']:
             self.answers = self.info['answers'][choice]
@@ -99,7 +104,8 @@ class Guess:
             self.answers = choice
         if type(self.answers) is not list: self.answers = [self.answers]
         self.answers = [a.lower().strip() for a in self.answers]
-        print(self.answers)
+
+        # print(self.answers)
 
         return True
 
@@ -125,22 +131,41 @@ class Guess:
 
 class Pictionary(Guess):
 
-    def __init__(self, ctx, category):
+    def __init__(self, ctx, category, illustrator):
         super().__init__(ctx, "pictionary", category)
+        self.illustrator = illustrator
 
     async def start(self):
-        if not await super().start():
+
+        choice_filter = None
+        if self.illustrator:
+            self.illustrator = self.illustrator.lower()
+            def filter_fn(options, file_paths, info):
+                if 'meta' not in info: return options, file_paths
+                meta = info['meta']
+                pairs = [(options[i], file_paths[i]) for i in range(len(options))]
+                pairs = [p for p in pairs if p[0] in meta and 'author' in meta[p[0]] and meta[p[0]]['author'].lower() == self.illustrator]
+                if len(pairs) == 0: return 'No drawings were found with that illustrator.', None
+                return [p[0] for p in pairs], [p[1] for p in pairs]
+            choice_filter = filter_fn
+
+        err = await super().start(choice_filter)
+        if not (type(err) is bool and err):
+            await self.ctx.response.send_message(err if type(err) is str else 'An error occurred.', ephemeral=True)
+            self.clean()
+            self.kill_myself()
             return
+
         embed_title = f"What {self.term} is this?"
         self.begin_embed = discord.Embed(
             title=embed_title,
             description='*You have 20 seconds to answer!*',
             color=0x36393F
         )
-        if self.author and type(self.author) is str and len(self.author) > 0: self.begin_embed.set_footer(text=f'Illustrator: {self.author}')
+        if self.illustrator and type(self.illustrator) is str and len(self.illustrator) > 0: self.begin_embed.set_footer(text=f'Illustrator: {self.illustrator}')
         self.begin_embed.set_image(url="attachment://mystery.png")
         try:
-            print(self.file_path)
+            # print(self.file_path)
             await self.ctx.response.send_message(
                 embed=self.begin_embed,
                 file=discord.File(
