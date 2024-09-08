@@ -3,9 +3,6 @@
 # Currently only supports one server because nobody else uses glisterbot so
 # If anyone actually wants multi-server support contact me or leave a github issue or something
 
-SERVER_ID = 931838136223412235
-AUTH_TOKEN = open('auth/unbelievaboat.txt').read()
-
 import discord
 from discord import app_commands
 import bot
@@ -17,6 +14,9 @@ import json
 import requests
 import time
 import math
+
+SERVER_ID = 931838136223412235
+AUTH_TOKEN = json.loads(open('config.json').read())['unb_token']
 
 rate_limits = {}
 idiot_list = []

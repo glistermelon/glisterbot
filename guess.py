@@ -34,15 +34,20 @@ bot.tree.add_command(guess_callback)
         app_commands.Choice(name="Mario Kart 8", value="mk8"),
         app_commands.Choice(name="Geometry Dash", value="geometrydash")
     ],
+    difficulty=[
+        app_commands.Choice(name='normal', value=0),
+        app_commands.Choice(name='hard', value=3),
+        app_commands.Choice(name='hardcore', value=1)
+    ],
     boosters=[
         app_commands.Choice(name="Yes", value=1),
         app_commands.Choice(name="No", value=0)
     ]
 )
-async def guess_music(ctx, category: str, boosters: int = 0):
+async def guess_music(ctx, category: str, difficulty: int = 0, boosters: int = 0):
     if category == "mk8" and boosters:
         category += "bc"
-    await GuessMusic(ctx, category).start()
+    await GuessMusic(ctx, category, difficulty).start()
 
 
 @guess_callback.command(name="pictionary", description="Guess anything from Geometry Dash levels to world flags.")
@@ -235,8 +240,14 @@ class Pictionary(Guess):
 
 class GuessMusic(Guess):
 
-    def __init__(self, ctx, category):
+    def __init__(self, ctx, category, clip_length):
         super().__init__(ctx, "music", category)
+        if clip_length != 0:
+            self.clip_length = clip_length
+            self.guess_time = 10
+        else:
+            self.clip_length = None
+            self.guess_time = 20
 
     async def start(self):
 
@@ -246,13 +257,15 @@ class GuessMusic(Guess):
             return
 
         song = AudioSegment.from_mp3(self.file_path)
-        segment = self.info["segment"] * 1000 if "segment" in self.info else 10000
+        segment = self.clip_length if self.clip_length is not None else (self.info['segment'] if 'segment' in self.info else 10)
+        segment *= 1000
         pos = int(math.floor(random.random() * (len(song) - segment)))
         music_io = BytesIO()
-        song[pos: pos + segment].export(music_io, format="mp3")
+        song[pos: pos + segment].export(music_io, format='mp3')
+        
         self.begin_embed = discord.Embed(
             title=f"What {self.term} does this song belong to?",
-            description="*You have 20 seconds to answer!*",
+            description=f"*You have {self.guess_time} seconds to answer!*",
             color=0x2F3136
         )
         try:
@@ -264,7 +277,7 @@ class GuessMusic(Guess):
         self.begin_time = time.time()
         self.timer = asyncio.current_task()
         events.add_listener("on_message", self.callback, channel = self.ctx.channel)
-        await asyncio.sleep(20)
+        await asyncio.sleep(self.guess_time)
         self.clean()
         self.begin_embed.description = "**Nobody guessed any of the answers within the time limit!**"
         self.begin_embed.colour = 0xFF0000

@@ -3,11 +3,16 @@ from discord import app_commands
 import json
 
 token = None
-with open("auth/token.txt") as file:
-    token = file.read()
+with open('config.json') as file:
+    token = json.loads(file.read())['token']
 
 client = discord.Client(intents=discord.Intents.all())
 tree = app_commands.CommandTree(client)
+default_color = 0x1f8b4c
+neutral_color = 0x2b2d31
+
+def commafy(number):
+    return '{:,}'.format(number)
 
 #import poker
 #import profanity
@@ -28,11 +33,7 @@ tree = app_commands.CommandTree(client)
 # importCommand('trivia')
 # importCommand('rankings')
 
-
 @client.event
 async def on_ready():
     await tree.sync()
     print('tree synced')
-    #l = log.ServerLogger(await client.fetch_guild(931838136223412235))
-    #await l.setup()
-    #await l.log_all()

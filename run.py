@@ -1,5 +1,13 @@
 import bot
 import guess
 import poker
+import top_messagers
+import log
+import very_real_ip_grabber
+import profanity
+import who_said_it_most
+import wordbomb
+import plinko
+import rankings
 
-bot.client.run(bot.token)
+bot.client.run(bot.token) 

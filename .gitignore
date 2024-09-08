@@ -6,6 +6,7 @@ trivia/
 wordbomb/
 auth/
 .idea/
-profanity.txt
+profanity.json
 messages/
 **/desktop.ini
+config.json
