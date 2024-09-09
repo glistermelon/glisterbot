@@ -140,8 +140,15 @@ rankings_kick_table = sql.Table(
     rankings_kick_constraint
 )
 
+reddit_posts_table = sql.Table(
+    'MonitoredRedditPosts',
+    sql_metadata,
+    sql.Column('ID', sql.String, primary_key=True),
+    sql.Column('SUBREDDIT', sql.String)
+)
+
 for table in (msg_table, mentions_table, role_mentions_table, reactions_table, channel_table, streak_table, profanity_table,
-              rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table):
+              rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table, reddit_posts_table):
     if engine.dialect.has_table(sql_conn, table.name):
         sql_metadata.remove(table)
     sql_metadata.create_all(engine)

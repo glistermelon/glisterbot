@@ -9,5 +9,6 @@ import who_said_it_most
 import wordbomb
 import plinko
 import rankings
+import reddit_deletions
 
-bot.client.run(bot.token) 
+bot.client.run(bot.token)

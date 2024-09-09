@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 import json
+import asyncio
 
 token = None
 with open('config.json') as file:
@@ -33,7 +34,12 @@ def commafy(number):
 # importCommand('trivia')
 # importCommand('rankings')
 
+run_on_ready = []
+run_on_ready_tasks = []
+
 @client.event
 async def on_ready():
-    await tree.sync()
-    print('tree synced')
+    #await tree.sync()
+    #print('tree synced')
+    for f in run_on_ready:
+        run_on_ready_tasks.append(asyncio.get_running_loop().create_task(f))

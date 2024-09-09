@@ -94,7 +94,7 @@ class LoggedMessage:
     
     async def add_reactions(self, msg: discord.Message):
         self.reactions = {
-            reaction.emoji if type(reaction.emoji) is str else [reaction.emoji.id, reaction.emoji.name] :
+            reaction.emoji if type(reaction.emoji) is str else (reaction.emoji.id, reaction.emoji.name) :
             [user.id async for user in reaction.users()]
             for reaction in msg.reactions
         }
@@ -123,21 +123,15 @@ class LoggedMessage:
                     MESSAGE_ID = self.id,
                     MENTIONED_ROLE = m
                 ).on_conflict_do_nothing(constraint=role_mentions_constraint))
-            for m in self.reactions:
-                session.execute(postgresql.insert(reactions_table).values(
-                    MESSAGE_ID = self.id,
-                    REACTION = m[0],
-                    COUNT = m[1]
-                ).on_conflict_do_nothing(constraint=reactions_constraint))
             for reaction, users in self.reactions.items():
                 for user_id in users:
                     session.execute(
-                        sql.insert(database.reactions_table).values(
+                        postgresql.insert(database.reactions_table).values(
                             MESSAGE_ID=self.id,
                             USER=user_id,
                             EMOJI_ID=reaction[0] if type(reaction) is not str else sql.null(),
-                            EMOJI_NAME=reaction[1] if type(reaction.emoji) is not str else reaction
-                        )
+                            EMOJI_NAME=reaction[1] if type(reaction) is not str else reaction
+                        ).on_conflict_do_nothing(constraint=reactions_constraint)
                     )
             session.commit()
 
