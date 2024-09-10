@@ -9,7 +9,6 @@ import database
 from database import sql, sql_conn
 from sqlalchemy.dialects import postgresql
 import os
-import logging
 import json
 
 webhook_urls = ['https://discord.com/api/webhooks/1282429899730190336/-4KfcLF3oYkjJLsVK1ToX9QAtHxWBQxnoZMweVtmy8E7PPpCe2XXbaVm5LICwA-U1q-Y']
@@ -19,17 +18,6 @@ max_tracking_period = 2 * 24 * 60 * 60 # 2 days
 MINUTE = 60
 HOUR = MINUTE * 60
 DAY = HOUR * 24
-
-if not os.path.exists('logs'): os.mkdir('logs')
-
-logging.basicConfig(
-    filename='logs/log.log',
-    filemode='a',
-    format='[%(asctime)s] %(levelname)s %(message)s',
-    datefmt='%H:%M:%S',
-    level=logging.INFO
-)
-logger = logging.getLogger('log')
 
 class SubredditWatcher:
     
@@ -74,8 +62,8 @@ class SubredditWatcher:
             except:
                 self.posts[i] = a
             self.add_post_to_db(post.id)
-            logger.info(f'Added to queue: {post.id}')
-        logger.error("THIS IS NOT SUPPOSED TO HAPPEN WHAT")
+            print(f'Added to queue: {post.id}')
+        print("THIS IS NOT SUPPOSED TO HAPPEN WHAT")
 
     async def check_posts(self):
 
@@ -94,7 +82,7 @@ class SubredditWatcher:
             async for post in self.reddit.info(fullnames = ['t3_' + post_id for post_id in posts]):
                 #logger.info(f'Checking: {post}')
                 if post.removed_by_category == 'moderator':
-                    logger.info(f'Yielding {post.id}')
+                    #logger.info(f'Yielding {post.id}')
                     self.remove_post_from_db(post.id)
                     yield post
                 else:
@@ -199,6 +187,6 @@ async def run_deletion_tracker():
             try:
                 await webhook.send(embed=embed)
             except:
-                logger.info(f'Failed to send to webhook: {webhook.url}')
+                print(f'Failed to send to webhook: {webhook.url}')
 
 bot.run_on_ready.append(run_deletion_tracker())

@@ -39,6 +39,7 @@ run_on_ready_tasks = []
 
 @client.event
 async def on_ready():
+    print('bot ready')
     #await tree.sync()
     #print('tree synced')
     for f in run_on_ready:
