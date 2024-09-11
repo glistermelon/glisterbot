@@ -10,6 +10,7 @@ from database import sql, sql_conn
 from sqlalchemy.dialects import postgresql
 import os
 import json
+import logging
 
 webhook_urls = ['https://discord.com/api/webhooks/1282429899730190336/-4KfcLF3oYkjJLsVK1ToX9QAtHxWBQxnoZMweVtmy8E7PPpCe2XXbaVm5LICwA-U1q-Y']
 
@@ -62,7 +63,7 @@ class SubredditWatcher:
             except:
                 self.posts[i] = a
             self.add_post_to_db(post.id)
-            print(f'Added to queue: {post.id}')
+            # print(f'Added to queue: {post.id}')
         print("THIS IS NOT SUPPOSED TO HAPPEN WHAT")
 
     async def check_posts(self):
@@ -189,4 +190,10 @@ async def run_deletion_tracker():
             except:
                 print(f'Failed to send to webhook: {webhook.url}')
 
-bot.run_on_ready.append(run_deletion_tracker())
+async def lazy_workaround():
+    try:
+        await run_deletion_tracker()
+    except Exception as e:
+        bot.logger.error(e)
+
+bot.run_on_ready.append(lazy_workaround())

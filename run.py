@@ -1,3 +1,4 @@
+import discord
 import bot
 import guess
 import poker
@@ -11,4 +12,4 @@ import plinko
 import rankings
 import reddit_deletions
 
-bot.client.run(bot.token)
+bot.client.run(bot.token, log_handler=bot.LogHandler())
