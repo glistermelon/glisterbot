@@ -63,8 +63,14 @@ class SubredditWatcher:
             except:
                 self.posts[i] = a
             self.add_post_to_db(post.id)
-            # print(f'Added to queue: {post.id}')
+            bot.logger.info(f'Added to queue: {post.id}')
         print("THIS IS NOT SUPPOSED TO HAPPEN WHAT")
+
+    async def try_record_posts(self):
+        try:
+            await self.record_posts()
+        except Exception as e:
+            bot.logger.error(e, exc_info=1)
 
     async def check_posts(self):
 
@@ -83,7 +89,7 @@ class SubredditWatcher:
             async for post in self.reddit.info(fullnames = ['t3_' + post_id for post_id in posts]):
                 #logger.info(f'Checking: {post}')
                 if post.removed_by_category == 'moderator':
-                    #logger.info(f'Yielding {post.id}')
+                    #bot.logger.info(f'Yielding {post.id}')
                     self.remove_post_from_db(post.id)
                     yield post
                 else:
@@ -117,7 +123,7 @@ async def run_deletion_tracker():
     )
     subreddit = await reddit.subreddit('geometrydash')
     tracker = await SubredditWatcher.create(reddit, subreddit)
-    recorder_task = asyncio.create_task(tracker.record_posts())
+    recorder_task = asyncio.create_task(tracker.try_record_posts())
     moderators = [user.name async for user in subreddit.moderator]
     moderators.remove('zbot-gd')
     NO_IMAGES_FOR_THESE_RULES_BECAUSE_THEY_MIGHT_BE_REALLY_BAD = [6]
@@ -194,6 +200,6 @@ async def lazy_workaround():
     try:
         await run_deletion_tracker()
     except Exception as e:
-        bot.logger.error(e)
+        bot.logger.error(e, exc_info=1)
 
 bot.run_on_ready.append(lazy_workaround())

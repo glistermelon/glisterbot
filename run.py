@@ -12,4 +12,6 @@ import plinko
 import rankings
 import reddit_deletions
 
-bot.client.run(bot.token, log_handler=bot.LogHandler())
+log_handler = bot.LogHandler()
+bot.logger.addHandler(log_handler)
+bot.client.run(bot.token, log_handler=log_handler)
