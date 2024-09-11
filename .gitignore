@@ -3,7 +3,7 @@ __pycache__/
 messages/
 ranks/
 trivia/
-wordbomb/
+wordbomb/dictionary.json
 auth/
 .idea/
 profanity.json
