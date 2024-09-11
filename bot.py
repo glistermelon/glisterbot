@@ -20,16 +20,11 @@ class LogHandler(logging.FileHandler):
 
     def emit(self, record):
         super().emit(record)
-        print('emit:', record)
-        print(record.levelno, logging.ERROR)
-        print(LogHandler.discord_output)
         if LogHandler.discord_output and record.levelno == logging.ERROR:
-            print('doing stuff')
             coroutine = LogHandler.discord_output.send('<@674819147963564054>\n```\n' + self.format(record) + '\n```')
             task = asyncio.get_running_loop().create_task(coroutine)
             LogHandler.send_tasks.add(task)
             task.add_done_callback(lambda t : LogHandler.send_tasks.remove(t))
-            print('stuff done')
 
 
 token = None
