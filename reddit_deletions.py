@@ -124,6 +124,11 @@ async def run_deletion_tracker():
     subreddit = await reddit.subreddit('geometrydash')
     tracker = await SubredditWatcher.create(reddit, subreddit)
     recorder_task = asyncio.create_task(tracker.try_record_posts())
+    recorder_task_failed = False
+    def recorder_callback(t):
+        nonlocal recorder_task_failed
+        recorder_task_failed = True
+    recorder_task.add_done_callback(recorder_callback)
     moderators = [user.name async for user in subreddit.moderator]
     moderators.remove('zbot-gd')
     NO_IMAGES_FOR_THESE_RULES_BECAUSE_THEY_MIGHT_BE_REALLY_BAD = [6]
@@ -131,6 +136,8 @@ async def run_deletion_tracker():
     sub_rules = [rule.short_name async for rule in subreddit.rules]
 
     async for post in tracker.check_posts():
+
+        if recorder_task_failed: raise RuntimeError('Recorder task failed. Returning from tracker.')
 
         author = None
         rule = None
@@ -143,7 +150,7 @@ async def run_deletion_tracker():
             author = post.author.name
         else:
             desc += '*Unknown*'
-        
+
         post_comments = await post.comments()
 
         mod_comments = [c for c in post_comments if hasattr(c.author, 'name') and c.author.name in moderators]
@@ -197,9 +204,20 @@ async def run_deletion_tracker():
                 print(f'Failed to send to webhook: {webhook.url}')
 
 async def lazy_workaround():
-    try:
-        await run_deletion_tracker()
-    except Exception as e:
-        bot.logger.error(e, exc_info=1)
+    last_fail = 0
+    fail_count = 0
+    while True:
+        try:
+            await run_deletion_tracker()
+        except Exception as e:
+            bot.logger.error(e, exc_info=1)
+            now = time.time()
+            fail_delta = last_fail - now
+            last_fail = now
+            if fail_delta > 5 * MINUTE: fail_count = 0
+            wait = 10 * fail_count
+            fail_count += 1
+            bot.logger.info(f'Attempting to restart deletion tracker in {wait} seconds.')
+            asyncio.sleep(wait)
 
 bot.run_on_ready.append(lazy_workaround())
