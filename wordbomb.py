@@ -23,7 +23,7 @@ class Game:
         Game.channels.append(channel.id)
 
 def get_help_embed():
-    help = open('wordbomb/help.txt').read()
+    help = open('wordbomb/help.md').read()
     i = help.index('\n')
     return discord.Embed(
         title=help[:i],
