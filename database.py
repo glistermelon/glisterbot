@@ -140,6 +140,14 @@ rankings_kick_table = sql.Table(
     rankings_kick_constraint
 )
 
+rankings_blacklist_constraint = sql.UniqueConstraint('PHRASE', 'SERVER')
+rankings_blacklist_table = sql.Table(
+    'RankingsBlacklist',
+    sql_metadata,
+    sql.Column('REGEX', sql.String),
+    sql.Column('SERVER', sql.BigInteger)
+)
+
 reddit_posts_table = sql.Table(
     'MonitoredRedditPosts',
     sql_metadata,

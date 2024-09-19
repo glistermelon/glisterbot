@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 import sqlalchemy.dialects.postgresql as postgresql
 from inspect import signature
 from bisect import bisect
+import re
 
 rankings_group = app_commands.Group(name="rankings",description="See rankings of different categories from your server members!")
 
@@ -129,6 +130,12 @@ def get_rate_command(category : Category, description : str, length_limit : int 
             await ctx.response.send_message('Rating must be between 0 and 10!', ephemeral=True)
             return
         
+        blacklist = [r.REGEX for r in sql_conn.execute(sql.select(db.rankings_blacklist_table.c.REGEX).where(db.rankings_blacklist_table.c.SERVER == ctx.guild.id))]
+        for regex in blacklist:
+            if re.search(regex, item_name, re.IGNORECASE) is not None:
+                await ctx.response.send_message('That phrase is banned!', ephemeral=True)
+                return
+
         display_name = item_name
         item_name = item_name.lower()
 
@@ -501,6 +508,51 @@ def get_vote_kick_command(category : Category, description : str):
 
     category.cmd_group.command(name='vote-kick', description=description)(vote_kick)
 
+def get_ban_regex_command(category : Category, description : str, ban : bool):
+
+    async def ban_regex(ctx : discord.Interaction, regex : str):
+
+        if not ctx.user.guild_permissions.administrator:
+            await ctx.response.send_message('You must be an admin to use this command!', ephemeral=True)
+            return
+
+        regex = regex.strip().lower()
+
+        if ban:
+            sql_conn.execute(
+                postgresql.insert(db.rankings_blacklist_table).values(REGEX=regex, SERVER=ctx.guild.id).on_conflict_do_nothing()
+            )
+        else:
+            removed = sql_conn.execute(sql.delete(db.rankings_blacklist_table).where(db.rankings_blacklist_table.c.REGEX == regex)).rowcount
+            if removed == 0:
+                await ctx.response.send_message('There is no ban record matching that regex!', ephemeral=True)
+                return
+
+        await ctx.response.send_message(embed=discord.Embed(
+            title=f'`{regex}` has been {'' if ban else 'un'}banned for {category.display_name}',
+            color=0xff0000
+        ))
+
+    
+
+def get_list_banned_regex_command(category : Category, description : str):
+
+    async def get_banned_regexes(ctx : discord.Interaction):
+
+        regexes = [r.REGEX for r in sql_conn.execute(
+            sql.select(db.rankings_blacklist_table.c.REGEX).where(db.rankings_blacklist_table.c.SERVER == ctx.guild.id)
+        )]
+
+        if len(regexes) == 0:
+            await ctx.response.send_message(embed=discord.Embed(title='There are no banned regexes in this server!', color=0xff0000))
+        else:
+            await ctx.response.send_message(embed=discord.Embed(
+                title='Banned Regexes',
+                description='```\n' + '\n'.join([f'{i + 1}: {regexes[i]}' for i in range(len(regexes))]) + '\n```'
+            ))
+    
+    category.cmd_group.command(name='banned-regexes', description=description)(get_banned_regexes)
+
 gd_category = Category(
     'geometrydash', 'Geometry Dash Levels',
     'Rankings for Geometry Dash levels!',
@@ -526,6 +578,9 @@ for cat in categories:
     get_remove_command(cat, '[ADMIN ONLY] Remove rated items from the rankings.')
     get_rename_command(cat, '[ADMIN ONLY] Rename levels.')
     get_vote_kick_command(cat, 'Vote to kick levels from the rankings.')
+    get_ban_regex_command(cat, '[ADMIN ONLY] Ban a regex server-wide.', True)
+    get_ban_regex_command(cat, '[ADMIN ONLY] Unban a regex server-wide.', False)
+    get_list_banned_regex_command(cat, 'See what regexes are banned in this server.')
     
 
 bot.tree.add_command(rankings_group)
