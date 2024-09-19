@@ -531,8 +531,8 @@ def get_ban_regex_command(category : Category, description : str, ban : bool):
             title=f'`{regex}` has been {'' if ban else 'un'}banned for {category.display_name}',
             color=0xff0000
         ))
-
     
+    category.cmd_group.command(name=f'{'' if ban else 'un'}ban-regex', description=description)(ban_regex)
 
 def get_list_banned_regex_command(category : Category, description : str):
 
