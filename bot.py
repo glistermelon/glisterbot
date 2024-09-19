@@ -50,6 +50,9 @@ async def on_ready():
         client=client
     )
 
+    print('syncing tree...')
+    await tree.sync()
+
     print('bot ready')
     #await tree.sync()
     #print('tree synced')
