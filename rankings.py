@@ -313,7 +313,6 @@ def get_details_command(category : Category, description : str):
                     sql.select(db.rankings_item_table.c.ID).where(db.rankings_item_table.c.ID != item_row.ID)
                 )]
                 for item_id in item_ids:
-                    print(item_id)
                     row = session.execute(
                         sql.select(db.rankings_score_table.c.SCORE, db.rankings_score_table.c.COUNT).where(
                             (db.rankings_score_table.c.ITEM_ID == item_id) &
