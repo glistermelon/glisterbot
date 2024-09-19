@@ -215,7 +215,8 @@ def get_rate_command(category : Category, description : str, length_limit : int 
                 VALUE=rating
             ).on_conflict_do_update(constraint=db.rankings_constraint, set_=dict(VALUE=rating)))
             session.commit()
-            
+
+        score = round(score, 2)
         desc = None
         if waiting_on is not None:
             desc = f'Only {waiting_on} more ranking(s) required until **{display_name}** is added to the ranking list!'
