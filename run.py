@@ -11,6 +11,7 @@ import wordbomb
 import plinko
 import rankings
 import reddit_deletions
+import message_chart
 
 log_handler = bot.LogHandler()
 bot.logger.addHandler(log_handler)
