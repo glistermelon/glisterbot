@@ -13,15 +13,21 @@ import math
 @bot.tree.command(name='message-chart', description='Visualize someone\'s message frequency over time.')
 @discord.app_commands.choices(time_window=[
     discord.app_commands.Choice(name='daily', value='day'),
-    discord.app_commands.Choice(name='weekly', value='weekly'),
+    discord.app_commands.Choice(name='weekly', value='week'),
     discord.app_commands.Choice(name='monthly', value='month'),
     discord.app_commands.Choice(name='yearly', value='year')
 ])
 async def message_chart(ctx : discord.Interaction, target_user : discord.User, time_window : discord.app_commands.Choice[str]):
 
+    from types import SimpleNamespace
+    target_user = SimpleNamespace()
+    target_user.id = 759086512586358794
+    time_window = SimpleNamespace()
+    time_window.value = 'week'
+
     time_window = time_window.value
 
-    weekly = time_window == 'weekly'
+    weekly = time_window == 'week'
     if weekly: time_window = 'day'
 
     stats = {}
@@ -58,6 +64,14 @@ async def message_chart(ctx : discord.Interaction, target_user : discord.User, t
     i = 0
     label_indices = []
 
+    if weekly: # account for first day being skipped
+        second_day = date + timedelta(1)
+        if second_day in stats:
+            stats[second_day] += stats[date]
+        else:
+            stats[second_day] = stats[date]
+        del stats[date]
+
     while date <= end_date:
 
         label = ''
@@ -87,14 +101,12 @@ async def message_chart(ctx : discord.Interaction, target_user : discord.User, t
                 month = 1
             date = datetime(year=year, month=month, day=1)
         elif weekly:
-            base_date = date
-            next_date = date + timedelta(7)
-            if base_date not in stats:
-                stats[base_date] = 0
             date += timedelta(1)
+            next_date = date + timedelta(6)
+            if next_date not in stats: stats[next_date] = 0
             while date < next_date:
                 if date in stats:
-                    stats[base_date] += stats[date]
+                    stats[next_date] += stats[date]
                     del stats[date]
                 date += timedelta(1)
         else:
