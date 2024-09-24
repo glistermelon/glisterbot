@@ -19,12 +19,6 @@ import math
 ])
 async def message_chart(ctx : discord.Interaction, target_user : discord.User, time_window : discord.app_commands.Choice[str]):
 
-    from types import SimpleNamespace
-    target_user = SimpleNamespace()
-    target_user.id = 759086512586358794
-    time_window = SimpleNamespace()
-    time_window.value = 'week'
-
     time_window = time_window.value
 
     weekly = time_window == 'week'
