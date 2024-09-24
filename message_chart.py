@@ -8,16 +8,21 @@ from types import SimpleNamespace
 import bot
 import discord
 from io import BytesIO
+import math
 
 @bot.tree.command(name='message-chart', description='Visualize someone\'s message frequency over time.')
 @discord.app_commands.choices(time_window=[
     discord.app_commands.Choice(name='daily', value='day'),
+    discord.app_commands.Choice(name='weekly', value='weekly'),
     discord.app_commands.Choice(name='monthly', value='month'),
     discord.app_commands.Choice(name='yearly', value='year')
 ])
 async def message_chart(ctx : discord.Interaction, target_user : discord.User, time_window : discord.app_commands.Choice[str]):
 
     time_window = time_window.value
+
+    weekly = time_window == 'weekly'
+    if weekly: time_window = 'day'
 
     stats = {}
 
@@ -56,7 +61,8 @@ async def message_chart(ctx : discord.Interaction, target_user : discord.User, t
     while date <= end_date:
 
         label = ''
-        if time_window == 'year' or (date.month in (1, 4, 7, 10) and (time_window == 'month' or date.day == 1)):
+        if (time_window == 'year' or (date.month in (1, 4, 7, 10) and (time_window == 'month' or date.day == 1))) \
+            or (weekly and date.month in (1, 4, 7, 10) and date.day <= 7):
             label = str(date.year)
             if time_window != 'year':
                 label = months[date.month - 1] + ' ' + label
@@ -80,6 +86,17 @@ async def message_chart(ctx : discord.Interaction, target_user : discord.User, t
                 year += 1
                 month = 1
             date = datetime(year=year, month=month, day=1)
+        elif weekly:
+            base_date = date
+            next_date = date + timedelta(7)
+            if base_date not in stats:
+                stats[base_date] = 0
+            date += timedelta(1)
+            while date < next_date:
+                if date in stats:
+                    stats[base_date] += stats[date]
+                    del stats[date]
+                date += timedelta(1)
         else:
             date += timedelta(1)
 
@@ -97,7 +114,6 @@ async def message_chart(ctx : discord.Interaction, target_user : discord.User, t
     axes = plt.gca()
 
     i = 0
-    keys = list(stats.keys())
     for label in axes.xaxis.get_ticklabels():
         if i not in label_indices:
             label.set_visible(False)
