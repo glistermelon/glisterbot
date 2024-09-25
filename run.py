@@ -12,6 +12,7 @@ import plinko
 import rankings
 import reddit_deletions
 import message_chart
+import woke_detector
 
 log_handler = bot.LogHandler()
 bot.logger.addHandler(log_handler)
