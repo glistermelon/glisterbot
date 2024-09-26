@@ -163,7 +163,7 @@ async def general_message_chart(ctx : discord.Interaction, target_user : discord
 @choices
 async def general_message_chart(ctx : discord.Interaction, phrase : str, time_window : discord.app_commands.Choice[str]):
     if len(phrase) > 20:
-        ctx.response.send_message('Length of phrase cannot exceed 20 characters.', ephemeral=True)
+        await ctx.response.send_message('Length of phrase cannot exceed 20 characters.', ephemeral=True)
         return
     image = message_chart(
         ctx, None, time_window,
