@@ -141,6 +141,9 @@ def message_chart(ctx : discord.Interaction, target_user : discord.User | None, 
     image = BytesIO()
     plt.savefig(image, format='png')
     image.seek(0)
+
+    plt.close()
+
     return image
 
 choices = discord.app_commands.choices(time_window=[
