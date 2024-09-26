@@ -10,14 +10,7 @@ import discord
 from io import BytesIO
 import math
 
-@bot.tree.command(name='message-chart', description='Visualize someone\'s message frequency over time.')
-@discord.app_commands.choices(time_window=[
-    discord.app_commands.Choice(name='daily', value='day'),
-    discord.app_commands.Choice(name='weekly', value='week'),
-    discord.app_commands.Choice(name='monthly', value='month'),
-    discord.app_commands.Choice(name='yearly', value='year')
-])
-async def message_chart(ctx : discord.Interaction, target_user : discord.User, time_window : discord.app_commands.Choice[str]):
+def message_chart(ctx : discord.Interaction, target_user : discord.User | None, time_window : discord.app_commands.Choice[str], sql_filter = None):
 
     time_window = time_window.value
 
@@ -26,11 +19,12 @@ async def message_chart(ctx : discord.Interaction, target_user : discord.User, t
 
     stats = {}
 
-    for row in sql_conn.execute(
-        sql.select(database.msg_table.c.AUTHOR, database.msg_table.c.TIMESTAMP)
-            .where(database.msg_table.c.AUTHOR == target_user.id)
-            .order_by(database.msg_table.c.TIMESTAMP.asc())
-    ):
+    stmt = sql.select(database.msg_table.c.AUTHOR, database.msg_table.c.TIMESTAMP)
+    if target_user is not None: stmt = stmt.where(database.msg_table.c.AUTHOR == target_user.id)
+    if sql_filter is not None: stmt = stmt.where(sql_filter)
+    stmt = stmt.order_by(database.msg_table.c.TIMESTAMP.asc())
+
+    for row in sql_conn.execute(stmt):
 
         date = datetime.fromtimestamp(int(row.TIMESTAMP))
 
@@ -147,7 +141,38 @@ async def message_chart(ctx : discord.Interaction, target_user : discord.User, t
     image = BytesIO()
     plt.savefig(image, format='png')
     image.seek(0)
+    return image
+
+choices = discord.app_commands.choices(time_window=[
+    discord.app_commands.Choice(name='daily', value='day'),
+    discord.app_commands.Choice(name='weekly', value='week'),
+    discord.app_commands.Choice(name='monthly', value='month'),
+    discord.app_commands.Choice(name='yearly', value='year')
+])
+
+@bot.tree.command(name='message-chart', description='Visualize someone\'s message frequency over time.')
+@choices
+async def general_message_chart(ctx : discord.Interaction, target_user : discord.User, time_window : discord.app_commands.Choice[str]):
+    image = message_chart(ctx, target_user, time_window)
     image_file = discord.File(image, filename='message_chart.png')
     embed = discord.Embed(title=f'{target_user.name}\'s Message Frequency')
+    embed.set_image(url='attachment://message_chart.png')
+    await ctx.response.send_message(embed=embed, file=image_file)
+
+@bot.tree.command(name='word-chart', description='Visualize the usage frequency of a specific phrase over time.')
+@choices
+async def general_message_chart(ctx : discord.Interaction, phrase : str, time_window : discord.app_commands.Choice[str]):
+    if len(phrase) > 20:
+        ctx.response.send_message('Length of phrase cannot exceed 20 characters.', ephemeral=True)
+        return
+    image = message_chart(
+        ctx, None, time_window,
+        sql.or_(
+            database.msg_table.c.CONTENT.contains(phrase),
+            database.msg_table.c.CONTENT.regexp_match(f'(?:^|\\W){phrase}(?:$|\\W)', flags='i')
+        )
+    )
+    image_file = discord.File(image, filename='message_chart.png')
+    embed = discord.Embed(title=f'"{phrase}" Usage Frequency')
     embed.set_image(url='attachment://message_chart.png')
     await ctx.response.send_message(embed=embed, file=image_file)
