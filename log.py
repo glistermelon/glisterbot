@@ -10,6 +10,7 @@ from database import *
 import database
 import json
 from sqlalchemy.orm import Session
+from minecraft import update_names as update_minecraft_names
 
 class Timespans:
 
@@ -215,6 +216,9 @@ class ServerLogger:
 logs_updating = False
 @bot.tree.command(name='update-logs', description='Updates the message logs for this server. May take a long time.')
 async def update_logs(ctx : discord.Interaction):
+
+    await update_minecraft_names()
+    return
 
     global logs_updating
     if logs_updating:

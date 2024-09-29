@@ -7,7 +7,7 @@ engine = sql.create_engine(sql.URL.create(
     'postgresql+psycopg2',
     username='postgres',
     password=json.loads(open('config.json').read())['psql_pw'],
-    host='localhost',
+    host='glisterbyte.net',
     port=5432,
     database='glisterbot'
 ))
@@ -140,12 +140,13 @@ rankings_kick_table = sql.Table(
     rankings_kick_constraint
 )
 
-rankings_blacklist_constraint = sql.UniqueConstraint('PHRASE', 'SERVER')
+rankings_blacklist_constraint = sql.UniqueConstraint('REGEX', 'SERVER')
 rankings_blacklist_table = sql.Table(
     'RankingsBlacklist',
     sql_metadata,
     sql.Column('REGEX', sql.String),
-    sql.Column('SERVER', sql.BigInteger)
+    sql.Column('SERVER', sql.BigInteger),
+    rankings_blacklist_constraint
 )
 
 reddit_posts_table = sql.Table(
@@ -155,8 +156,27 @@ reddit_posts_table = sql.Table(
     sql.Column('SUBREDDIT', sql.String)
 )
 
+minecraft_users_constraint = sql.UniqueConstraint('DISCORD_ID', 'MINECRAFT_UUID', 'SERVER')
+minecraft_users_table = sql.Table(
+    'MinecraftUsers',
+    sql_metadata,
+    sql.Column('DISCORD_ID', sql.BigInteger, primary_key=True),
+    sql.Column('MINECRAFT_UUID', sql.String(36), primary_key=True),
+    sql.Column('SERVER', sql.BigInteger, primary_key=True),
+    minecraft_users_constraint
+)
+
+minecraft_names_constraint = sql.UniqueConstraint('UUID', 'NAME')
+minecraft_names_table = sql.Table(
+    'MinecraftNames',
+    sql_metadata,
+    sql.Column('UUID', sql.String(32), primary_key=True),
+    sql.Column('NAME', sql.Text, primary_key=True),
+    minecraft_names_constraint
+)
+
 for table in (msg_table, mentions_table, role_mentions_table, reactions_table, channel_table, streak_table, profanity_table,
-              rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table, reddit_posts_table):
+              rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table, reddit_posts_table, minecraft_users_table):
     if engine.dialect.has_table(sql_conn, table.name):
         sql_metadata.remove(table)
     sql_metadata.create_all(engine)

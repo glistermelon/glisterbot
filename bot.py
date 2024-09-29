@@ -50,11 +50,9 @@ async def on_ready():
         client=client
     )
 
-    print('syncing tree...')
-    await tree.sync()
+    #print('syncing tree...')
+    #await tree.sync()
 
     print('bot ready')
-    #await tree.sync()
-    #print('tree synced')
     for f in run_on_ready:
         run_on_ready_tasks.append(asyncio.get_running_loop().create_task(f))
