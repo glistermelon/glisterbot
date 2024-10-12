@@ -51,11 +51,15 @@ class QuoteView(discord.ui.View):
                 else:
                     session.execute(
                         sql.delete(db.quote_score_table)
-                            .where(db.quote_score_table.c.USER_ID == ctx.user.id)
+                            .where(
+                                (db.quote_score_table.c.QUOTE_MESSAGE_ID == self.quote_view.quote_data.MESSAGE_ID) &
+                                (db.quote_score_table.c.USER_ID == ctx.user.id)
+                            )
                     )
 
                 score = session.execute(
                     sql.update(db.quotes_table)
+                        .where(db.quote_score_table.c.QUOTE_MESSAGE_ID == self.quote_view.quote_data.MESSAGE_ID)
                         .values(SCORE=db.quotes_table.c.SCORE + (1 if self.upvote else -1))
                         .returning(db.quotes_table.c.SCORE)
                 ).first().SCORE
