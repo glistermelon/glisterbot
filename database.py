@@ -3,14 +3,17 @@ import sqlalchemy as sql
 from sqlalchemy.dialects import postgresql
 import json
 
-engine = sql.create_engine(sql.URL.create(
-    'postgresql+psycopg2',
-    username='postgres',
-    password=json.loads(open('config.json').read())['psql_pw'],
-    host='localhost',
-    port=5432,
-    database='glisterbot'
-))
+engine = sql.create_engine(
+    sql.URL.create(
+        'postgresql+psycopg2',
+        username='postgres',
+        password=json.loads(open('config.json').read())['psql_pw'],
+        host='localhost',
+        port=5432,
+        database='glisterbot'
+    ),
+    enable_from_linting=False
+)
 
 sql_conn = engine.connect()
 
@@ -180,7 +183,7 @@ quotes_table = sql.Table(
     'Quotes',
     sql_metadata,
     sql.Column('ID', sql.BigInteger, autoincrement=True, primary_key=True),
-    sql.Column('MESSAGE_ID', sql.BigInteger, primary_key=True),
+    sql.Column('MESSAGE_ID', sql.BigInteger),
     sql.Column('CONTENT', sql.Text),
     sql.Column('USER_ID', sql.BigInteger),
     sql.Column('CHANNEL_ID', sql.BigInteger),
@@ -190,11 +193,11 @@ quotes_table = sql.Table(
     quotes_constraint
 )
 
-quote_score_constraint = sql.UniqueConstraint('QUOTE_MESSAGE_ID', 'USER_ID')
+quote_score_constraint = sql.UniqueConstraint('QUOTE_ID', 'USER_ID')
 quote_score_table = sql.Table(
     'QuoteScores',
     sql_metadata,
-    sql.Column('QUOTE_MESSAGE_ID', sql.ForeignKey('Quotes.MESSAGE_ID'), primary_key=True),
+    sql.Column('QUOTE_ID', sql.BigInteger, primary_key=True),
     sql.Column('USER_ID', sql.BigInteger),
     sql.Column('UPVOTED', sql.Boolean),
     quote_score_constraint

@@ -1,11 +1,11 @@
-import discord
-import bot
 import database as db
 from datetime import datetime
 from database import sql, sql_conn
 from sqlalchemy import func as sql_func
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects import postgresql
+import discord
+import bot
 
 quote_group = discord.app_commands.Group(name='quote', description='Weird server-dependent quote stuff!')
 bot.tree.add_command(quote_group)
@@ -33,17 +33,20 @@ class QuoteView(discord.ui.View):
 
                 upvoted = session.execute(
                     sql.select(db.quote_score_table.c.UPVOTED)
-                        .where(db.quote_score_table.c.USER_ID == ctx.user.id)
+                        .where(
+                            (db.quote_score_table.c.QUOTE_ID == self.quote_view.quote_data.ID) &
+                            (db.quote_score_table.c.USER_ID == ctx.user.id)
+                        )
                         .limit(1)
                 ).first()
 
                 if upvoted is not None and upvoted.UPVOTED == self.upvote:
                     return
 
-                if upvoted is None:
+                if upvoted is None:         
                     session.execute(
                         sql.insert(db.quote_score_table).values(
-                            QUOTE_MESSAGE_ID=self.quote_view.quote_data.MESSAGE_ID,
+                            QUOTE_ID=self.quote_view.quote_data.ID,
                             USER_ID=ctx.user.id,
                             UPVOTED=self.upvote
                         )
@@ -52,14 +55,14 @@ class QuoteView(discord.ui.View):
                     session.execute(
                         sql.delete(db.quote_score_table)
                             .where(
-                                (db.quote_score_table.c.QUOTE_MESSAGE_ID == self.quote_view.quote_data.MESSAGE_ID) &
+                                (db.quote_score_table.c.QUOTE_ID == self.quote_view.quote_data.ID) &
                                 (db.quote_score_table.c.USER_ID == ctx.user.id)
                             )
                     )
 
                 score = session.execute(
                     sql.update(db.quotes_table)
-                        .where(db.quote_score_table.c.QUOTE_MESSAGE_ID == self.quote_view.quote_data.MESSAGE_ID)
+                        .where(db.quotes_table.c.ID == self.quote_view.quote_data.ID)
                         .values(SCORE=db.quotes_table.c.SCORE + (1 if self.upvote else -1))
                         .returning(db.quotes_table.c.SCORE)
                 ).first().SCORE
@@ -67,7 +70,7 @@ class QuoteView(discord.ui.View):
                 session.commit()
 
             for quote_view in QuoteView.active_views:
-                if quote_view.quote_data.MESSAGE_ID != self.quote_view.quote_data.MESSAGE_ID:
+                if quote_view.quote_data.ID != self.quote_view.quote_data.ID:
                     continue
                 quote_view.score_button.label = str(score)
                 quote_view.refresh_buttons()
@@ -225,7 +228,7 @@ class ProposalView(discord.ui.View):
 
         if not bot.is_admin(ctx.guild, ctx.user):
             await ctx.response.send_message(
-                'You must be an administrater to manage quote proposals!',
+                'You must be an administrator to manage quote proposals!',
                 ephemeral=True
             )
             return
@@ -267,7 +270,7 @@ class ProposalView(discord.ui.View):
 
         if not bot.is_admin(ctx.guild, ctx.user):
             await ctx.response.send_message(
-                'You must be an administrater to manage quote proposals!',
+                'You must be an administrator to manage quote proposals!',
                 ephemeral=True
             )
             return
