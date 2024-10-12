@@ -175,8 +175,49 @@ minecraft_names_table = sql.Table(
     minecraft_names_constraint
 )
 
+quotes_constraint = sql.UniqueConstraint('MESSAGE_ID')
+quotes_table = sql.Table(
+    'Quotes',
+    sql_metadata,
+    sql.Column('ID', sql.BigInteger, autoincrement=True, primary_key=True),
+    sql.Column('MESSAGE_ID', sql.BigInteger, primary_key=True),
+    sql.Column('CONTENT', sql.Text),
+    sql.Column('USER_ID', sql.BigInteger),
+    sql.Column('CHANNEL_ID', sql.BigInteger),
+    sql.Column('SERVER_ID', sql.BigInteger),
+    sql.Column('TIMESTAMP', sql.BigInteger),
+    sql.Column('SCORE', sql.Integer),
+    quotes_constraint
+)
+
+quote_score_constraint = sql.UniqueConstraint('QUOTE_MESSAGE_ID', 'USER_ID')
+quote_score_table = sql.Table(
+    'QuoteScores',
+    sql_metadata,
+    sql.Column('QUOTE_MESSAGE_ID', sql.ForeignKey('Quotes.MESSAGE_ID'), primary_key=True),
+    sql.Column('USER_ID', sql.BigInteger),
+    sql.Column('UPVOTED', sql.Boolean),
+    quote_score_constraint
+)
+
+quote_proposal_constraint = sql.UniqueConstraint('MESSAGE_ID')
+quote_proposals_table = sql.Table(
+    'QuoteProposals',
+    sql_metadata,
+    sql.Column('ID', sql.BigInteger, primary_key=True, autoincrement=True),
+    sql.Column('MESSAGE_ID', sql.BigInteger),
+    sql.Column('CONTENT', sql.Text),
+    sql.Column('USER_ID', sql.BigInteger),
+    sql.Column('CHANNEL_ID', sql.BigInteger),
+    sql.Column('SERVER_ID', sql.BigInteger),
+    sql.Column('TIMESTAMP', sql.BigInteger),
+    sql.Column('PROPOSED_BY', sql.BigInteger),
+    quote_proposal_constraint
+)
+
 for table in (msg_table, mentions_table, role_mentions_table, reactions_table, channel_table, streak_table, profanity_table,
-              rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table, reddit_posts_table, minecraft_users_table):
+              rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table, reddit_posts_table, minecraft_users_table,
+              quotes_table):
     if engine.dialect.has_table(sql_conn, table.name):
         sql_metadata.remove(table)
     sql_metadata.create_all(engine)

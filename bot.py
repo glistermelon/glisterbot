@@ -39,6 +39,14 @@ neutral_color = 0x2b2d31
 def commafy(number):
     return '{:,}'.format(number)
 
+def is_admin(server : discord.Guild, user : discord.User):
+    return server.id == 931838136223412235 and user.id in (
+        674819147963564054,
+        759086512586358794,
+        705360840345518121,
+        836328029130850304
+    )
+
 run_on_ready = []
 run_on_ready_tasks = []
 
