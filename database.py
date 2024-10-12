@@ -7,7 +7,7 @@ engine = sql.create_engine(sql.URL.create(
     'postgresql+psycopg2',
     username='postgres',
     password=json.loads(open('config.json').read())['psql_pw'],
-    host='glisterbyte.net',
+    host='localhost',
     port=5432,
     database='glisterbot'
 ))

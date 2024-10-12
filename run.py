@@ -14,6 +14,7 @@ import reddit_deletions
 import message_chart
 import woke_detector
 import minecraft
+import counting_thing
 
 log_handler = bot.LogHandler()
 bot.logger.addHandler(log_handler)
