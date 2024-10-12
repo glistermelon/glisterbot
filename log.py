@@ -217,9 +217,6 @@ logs_updating = False
 @bot.tree.command(name='update-logs', description='Updates the message logs for this server. May take a long time.')
 async def update_logs(ctx : discord.Interaction):
 
-    await update_minecraft_names()
-    return
-
     global logs_updating
     if logs_updating:
         await ctx.response.send_message('Someone else is updating the logs right now!', ephemeral=True)
