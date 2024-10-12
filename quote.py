@@ -71,7 +71,7 @@ class QuoteView(discord.ui.View):
                     continue
                 quote_view.score_button.label = str(score)
                 quote_view.refresh_buttons()
-                await quote_view.embed_ctx.edit_original_response(view=self.quote_view)
+                await quote_view.embed_ctx.edit_original_response(view=quote_view)
 
     class UnresponsiveButton(discord.ui.Button):
         async def callback(self, ctx : discord.Interaction):
@@ -97,7 +97,7 @@ class QuoteView(discord.ui.View):
         QuoteView.active_views.remove(self)
     
     def refresh_buttons(self):
-        
+
         self.clear_items()
 
         score = int(self.score_button.label)
