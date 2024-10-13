@@ -197,7 +197,7 @@ quote_score_constraint = sql.UniqueConstraint('QUOTE_ID', 'USER_ID')
 quote_score_table = sql.Table(
     'QuoteScores',
     sql_metadata,
-    sql.Column('QUOTE_ID', sql.BigInteger, primary_key=True),
+    sql.Column('QUOTE_ID', sql.BigInteger),
     sql.Column('USER_ID', sql.BigInteger),
     sql.Column('UPVOTED', sql.Boolean),
     quote_score_constraint
@@ -220,7 +220,7 @@ quote_proposals_table = sql.Table(
 
 for table in (msg_table, mentions_table, role_mentions_table, reactions_table, channel_table, streak_table, profanity_table,
               rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table, reddit_posts_table, minecraft_users_table,
-              quotes_table):
+              quotes_table, quote_score_table, quote_proposals_table):
     if engine.dialect.has_table(sql_conn, table.name):
         sql_metadata.remove(table)
     sql_metadata.create_all(engine)

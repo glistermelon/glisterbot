@@ -1,7 +1,6 @@
 import database as db
 from datetime import datetime
 from database import sql, sql_conn
-from sqlalchemy import func as sql_func
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects import postgresql
 import discord
@@ -10,118 +9,219 @@ import bot
 quote_group = discord.app_commands.Group(name='quote', description='Weird server-dependent quote stuff!')
 bot.tree.add_command(quote_group)
 
-class QuoteView(discord.ui.View):
+def vote_quote(quote_id : int, user_id : int, upvote : bool):
 
-    active_views = []
+    new_net_score = None
+
+    with Session(db.engine) as session:
+
+        upvoted = session.execute(
+            sql.select(db.quote_score_table.c.UPVOTED)
+                .where(
+                    (db.quote_score_table.c.QUOTE_ID == quote_id) &
+                    (db.quote_score_table.c.USER_ID == user_id)
+                )
+                .limit(1)
+        ).first()
+        if upvoted is not None: upvoted = upvoted.UPVOTED
+
+        currently_neutral = upvoted is None
+        undo_current = False if currently_neutral else (upvote and upvoted) or ((not upvote) and (not upvoted))
+
+        if currently_neutral:
+            session.execute(
+                sql.insert(db.quote_score_table).values(
+                    QUOTE_ID=quote_id,
+                    USER_ID=user_id,
+                    UPVOTED=upvote
+                )
+            )
+        elif undo_current:
+            session.execute(
+                sql.delete(db.quote_score_table)
+                    .where(
+                        (db.quote_score_table.c.QUOTE_ID == quote_id) &
+                        (db.quote_score_table.c.USER_ID == user_id)
+                    )
+            )
+        else:
+            session.execute(
+                sql.update(db.quote_score_table)
+                    .where(
+                        (db.quote_score_table.c.QUOTE_ID == quote_id) &
+                        (db.quote_score_table.c.USER_ID == user_id)
+                    )
+                    .values(UPVOTED=upvote)
+            )
+
+        stmt = sql.select(sql.func.count()) \
+                    .select_from(db.quote_score_table) \
+                    .where(db.quote_score_table.c.QUOTE_ID == quote_id)
+
+        upvotes = session.execute(stmt.where(db.quote_score_table.c.UPVOTED == True)).scalar()
+        downvotes = session.execute(stmt.where(db.quote_score_table.c.UPVOTED == False)).scalar()
+
+        result = session.execute(
+            sql.update(db.quotes_table)
+                .where(db.quotes_table.c.ID == quote_id)
+                .values(SCORE=(upvotes - downvotes))
+                .returning(db.quotes_table.c.SCORE)
+        ).first()
+
+        if result is not None:
+            new_net_score = result.SCORE
+
+        session.commit()
+
+    user_score = None
+    if undo_current:
+        user_score = 0
+    else:
+        user_score = 1 if upvote else -1
+    
+    return new_net_score, user_score
+
+class VoteDialog():
+
+    down_color = 0x7193ff
+    up_color = 0xff4500
 
     class VoteButton(discord.ui.Button):
 
-        def __init__(self, upvote : bool, quote_view, *args, **kwargs):
-
+        def __init__(self, vote_dialog, upvote : bool, *args, **kwargs):
             super().__init__(*args, **kwargs)
-
+            self.vote_dialog = vote_dialog
             self.upvote = upvote
-            self.quote_view = quote_view
+
+        async def callback(self, ctx : discord.Interaction):
+            try:
+                await ctx.response.defer(thinking=False)
+                await self.vote_dialog.update_score(self.upvote)
+            except Exception as e:
+                bot.logger.error(e)
+                raise e
+
+    def __init__(self, quote_id : int, user_id : int):
+        self.quote_id = quote_id
+        self.user_id = user_id
+
+    async def send(self, ctx : discord.Interaction):
+
+        self.ctx = ctx
+
+        quote_score = None
+        user_score = None
+
+        with Session(db.engine) as session:
+
+            quote_data = session.execute(
+                sql.select(db.quotes_table)
+                    .where(db.quotes_table.c.ID == self.quote_id)
+                    .limit(1)
+            ).first()
+
+            if quote_data is None:
+                await ctx.response.send_message(embed=discord.Embed(
+                    title='Something went wrong.',
+                    color=0xff0000
+                ))
+                return
+            
+            quote_score = quote_data.SCORE
+
+            user_data = session.execute(
+                sql.select(db.quote_score_table)
+                    .where(
+                        (db.quote_score_table.c.QUOTE_ID == self.quote_id) &
+                        (db.quote_score_table.c.USER_ID == self.user_id)
+                    )
+                    .limit(1)
+            ).first()
+
+            if user_data is None:
+                user_score = 0
+            else:
+                user_score = 1 if user_data.UPVOTED else -1
+
+        await ctx.response.send_message(
+            embed=self.get_embed(user_score, quote_score),
+            view=self.get_view(user_score),
+            ephemeral=True
+        )
+
+    def get_embed(self, user_score : int, quote_score : int):
+
+        user_score_int = user_score
+        user_score = str(user_score)
+        if user_score_int > 0:
+            user_score = '<:plus:1247425658871877663> ' + user_score
+        elif user_score_int < 0:
+            user_score = '<:minus:1247426369147768892> ' + user_score[1:]
         
-        async def callback(self, ctx : discord.Interaction):
+        color = None
+        if user_score_int > 0:
+            color = VoteDialog.up_color
+        elif user_score_int < 0:
+            color = VoteDialog.down_color
+        else:
+            color = bot.neutral_color
 
-            await ctx.response.defer(thinking=False)
+        return discord.Embed(
+            title=f'Quote score: {'+' if quote_score > 0 else ''}{quote_score}',
+            description=f'Your current score of this quote is: {user_score}',
+            color=color
+        )
+    
+    def get_view(self, user_score : int):
 
-            score = None
+        up_button = VoteDialog.VoteButton(
+            self, True,
+            emoji='<:redditupvote:932087927155068968>' if user_score == 1 else '<:emptyupvote:1294943835536752770>',
+            style=discord.ButtonStyle.grey
+        )
 
-            with Session(db.engine) as session:
+        down_button = VoteDialog.VoteButton(
+            self, False,
+            emoji='<:redditdownvote:932088189194231809>' if user_score == -1 else '<:emptydownvote:1294943834786238464>',
+            style=discord.ButtonStyle.grey
+        )
 
-                upvoted = session.execute(
-                    sql.select(db.quote_score_table.c.UPVOTED)
-                        .where(
-                            (db.quote_score_table.c.QUOTE_ID == self.quote_view.quote_data.ID) &
-                            (db.quote_score_table.c.USER_ID == ctx.user.id)
-                        )
-                        .limit(1)
-                ).first()
+        view = discord.ui.View()
+        view.add_item(up_button)
+        view.add_item(down_button)
+        return view
 
-                if upvoted is not None and upvoted.UPVOTED == self.upvote:
-                    return
+    async def update_score(self, upvoted : bool):
 
-                if upvoted is None:         
-                    session.execute(
-                        sql.insert(db.quote_score_table).values(
-                            QUOTE_ID=self.quote_view.quote_data.ID,
-                            USER_ID=ctx.user.id,
-                            UPVOTED=self.upvote
-                        )
-                    )
-                else:
-                    session.execute(
-                        sql.delete(db.quote_score_table)
-                            .where(
-                                (db.quote_score_table.c.QUOTE_ID == self.quote_view.quote_data.ID) &
-                                (db.quote_score_table.c.USER_ID == ctx.user.id)
-                            )
-                    )
+        quote_score, user_score = vote_quote(self.quote_id, self.user_id, upvoted)
 
-                score = session.execute(
-                    sql.update(db.quotes_table)
-                        .where(db.quotes_table.c.ID == self.quote_view.quote_data.ID)
-                        .values(SCORE=db.quotes_table.c.SCORE + (1 if self.upvote else -1))
-                        .returning(db.quotes_table.c.SCORE)
-                ).first().SCORE
+        await self.ctx.edit_original_response(
+            embed=self.get_embed(user_score, quote_score),
+            view=self.get_view(user_score)
+        )
 
-                session.commit()
+class QuoteView(discord.ui.View):
 
-            for quote_view in QuoteView.active_views:
-                if quote_view.quote_data.ID != self.quote_view.quote_data.ID:
-                    continue
-                quote_view.score_button.label = str(score)
-                quote_view.refresh_buttons()
-                await quote_view.embed_ctx.edit_original_response(view=quote_view)
-
-    class UnresponsiveButton(discord.ui.Button):
-        async def callback(self, ctx : discord.Interaction):
-            await ctx.response.defer(thinking=False)
-
-    def __init__(self, quote_data, embed : discord.Embed, embed_ctx : discord.Interaction):
+    def __init__(self, quote_data):
 
         super().__init__()
 
         self.quote_data = quote_data
-        self.embed = embed
-        self.embed_ctx = embed_ctx
-        self.score_button = QuoteView.UnresponsiveButton(
-            label=str(self.quote_data.SCORE),
-            style=discord.ButtonStyle.blurple
-        )
-        self.refresh_buttons()
-
-        QuoteView.active_views.append(self)
-    
-    async def on_timeout(self):
-
-        QuoteView.active_views.remove(self)
-    
-    def refresh_buttons(self):
-
-        self.clear_items()
-
-        score = int(self.score_button.label)
-        if score < 0: self.score_button.style = discord.ButtonStyle.red
-        elif score == 0: self.score_button.style = discord.ButtonStyle.blurple
-        else: self.score_button.style = discord.ButtonStyle.green
 
         self.add_item(discord.ui.Button(
             emoji='🔗',
-            style=discord.ButtonStyle.grey,
-            url=f'https://discord.com/channels/{self.quote_data.SERVER_ID}/{self.quote_data.CHANNEL_ID}/{self.quote_data.MESSAGE_ID}'
+            url=f'https://discord.com/channels/{quote_data.SERVER_ID}/{quote_data.CHANNEL_ID}/{quote_data.MESSAGE_ID}',
+            style=discord.ButtonStyle.grey
         ))
-        self.add_item(QuoteView.VoteButton(
-            True, self,
-            emoji='👍', style=discord.ButtonStyle.grey
-        ))
-        self.add_item(self.score_button)
-        self.add_item(QuoteView.VoteButton(
-            False, self,
-            emoji='👎', style=discord.ButtonStyle.grey
-        ))
+    
+    @discord.ui.button(
+        emoji='<:CubeReddit:251440616003600384>',
+        label='Vote',
+        style=discord.ButtonStyle.blurple
+    )
+    async def vote(self, ctx : discord.Interaction, button : discord.ui.Button):
+        await VoteDialog(self.quote_data.ID, ctx.user.id).send(ctx)
+
 
 @quote_group.command(name='random', description='Get a random quote from someone in this server!')
 async def random_quote(ctx : discord.Interaction, author : discord.User = None):
@@ -136,7 +236,7 @@ async def get_quote(ctx : discord.Interaction, author : discord.User = None, quo
     query = sql.select(db.quotes_table).where(db.quotes_table.c.SERVER_ID == ctx.guild.id)
     if author is not None: query = query.where(db.quotes_table.c.USER_ID == author.id)
     elif quote_id is not None: query = query.where(db.quotes_table.c.ID == quote_id)
-    query = query.order_by(sql_func.random())
+    query = query.order_by(sql.func.random())
     quote_data = sql_conn.execute(query).first()
 
     if quote_data is None:
@@ -154,9 +254,13 @@ async def get_quote(ctx : discord.Interaction, author : discord.User = None, quo
         description=quote_data.CONTENT,
         color=bot.default_color
     )
+
     embed.timestamp = datetime.fromtimestamp(quote_data.TIMESTAMP)
-    embed.set_footer(text=f'Quote #{quote_data.ID}')
-    if author is None: author = bot.client.get_user(quote_data.USER_ID)
+
+    embed.set_footer(text=f'Quote #{quote_data.ID}  •  Score {'+' if quote_data.SCORE > 0 else ''}{quote_data.SCORE}')
+
+    if author is None:
+        author = bot.client.get_user(quote_data.USER_ID)
     if author is None:
         embed.set_author(name='Unknown author')
     else:
@@ -164,7 +268,7 @@ async def get_quote(ctx : discord.Interaction, author : discord.User = None, quo
 
     await ctx.response.send_message(
         embed=embed,
-        view=QuoteView(quote_data, embed, ctx)
+        view=QuoteView(quote_data)
     )
 
 @bot.tree.context_menu(name='Propose Quote')
@@ -294,7 +398,7 @@ async def review_quote_proposal(ctx : discord.Interaction, id : int = None):
 
     query = sql.select(db.quote_proposals_table).where(db.quote_proposals_table.c.SERVER_ID == ctx.guild.id)
     if id is not None: query = query.where(db.quote_proposals_table.c.ID == id)
-    query = query.order_by(sql_func.random()).limit(1)
+    query = query.order_by(sql.func.random()).limit(1)
     prop_data = sql_conn.execute(query).first()
 
     if prop_data is None:
