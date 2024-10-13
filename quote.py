@@ -428,26 +428,17 @@ async def remove_quote(ctx : discord.Interaction, id : int, reason : str = None)
 
     with Session(db.engine) as session:
 
-        message_id = session.execute(
-            sql.select(db.quotes_table)
+        session.execute(
+            sql.delete(db.quote_score_table)
+                .where(db.quote_score_table.c.QUOTE_ID == id)
+        )
+
+        num_deleted = session.execute(
+            sql.delete(db.quotes_table)
                 .where(db.quotes_table.c.ID == id)
-        ).first()
+        ).rowcount
 
-        if message_id is not None:
-
-            message_id = message_id.MESSAGE_ID
-
-            session.execute(
-                sql.delete(db.quote_score_table)
-                    .where(db.quote_score_table.c.QUOTE_MESSAGE_ID == message_id)
-            )
-
-            num_deleted = session.execute(
-                sql.delete(db.quotes_table)
-                    .where(db.quotes_table.c.MESSAGE_ID == message_id)
-            ).rowcount
-
-            session.commit()
+        session.commit()
     
     if num_deleted == 0:
         await ctx.response.send_message(
