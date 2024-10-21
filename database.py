@@ -220,6 +220,12 @@ quote_proposals_table = sql.Table(
     quote_proposal_constraint
 )
 
+dracboard_table = sql.Table(
+    'DracboardMessages',
+    sql_metadata,
+    sql.Column('MESSAGE_ID', sql.BigInteger)
+)
+
 for table in (msg_table, mentions_table, role_mentions_table, reactions_table, channel_table, streak_table, profanity_table,
               rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table, reddit_posts_table, minecraft_users_table,
               quotes_table, quote_score_table, quote_proposals_table):

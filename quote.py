@@ -15,7 +15,7 @@ class MessageEmbed(discord.Embed):
         author : int | discord.User,
         timestamp : datetime,
         jump_url : str,
-        replying_to : str,
+        replying_to : str = None,
         **kwargs
     ):
         
@@ -36,7 +36,7 @@ class MessageEmbed(discord.Embed):
 
         self.timestamp = timestamp
 
-        if type(author) is not discord.User:
+        if type(author) is int:
             author = bot.client.get_user(author)
         if author is None:
             self.set_author(name='Unknown author')

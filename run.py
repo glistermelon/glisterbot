@@ -16,7 +16,8 @@ import woke_detector
 import minecraft
 import counting_thing
 import quote
-import STOP_PINGING_ME                      
+import STOP_PINGING_ME
+import dracboard              
 
 log_handler = bot.LogHandler()
 bot.logger.addHandler(log_handler)
