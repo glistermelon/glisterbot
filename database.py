@@ -190,6 +190,7 @@ quotes_table = sql.Table(
     sql.Column('SERVER_ID', sql.BigInteger),
     sql.Column('TIMESTAMP', sql.BigInteger),
     sql.Column('SCORE', sql.Integer),
+    sql.Column('REPLYING_TO', sql.Text),
     quotes_constraint
 )
 
@@ -215,6 +216,7 @@ quote_proposals_table = sql.Table(
     sql.Column('SERVER_ID', sql.BigInteger),
     sql.Column('TIMESTAMP', sql.BigInteger),
     sql.Column('PROPOSED_BY', sql.BigInteger),
+    sql.Column('REPLYING_TO', sql.Text),
     quote_proposal_constraint
 )
 

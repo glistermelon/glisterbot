@@ -5,6 +5,52 @@ from sqlalchemy.orm import Session
 from sqlalchemy.dialects import postgresql
 import discord
 import bot
+from types import SimpleNamespace
+
+class MessageEmbed(discord.Embed):
+
+    def __init__(
+        self, *,
+        content : str,
+        author : int | discord.User,
+        timestamp : datetime,
+        jump_url : str,
+        replying_to : str,
+        **kwargs
+    ):
+        
+        self.jump_url = jump_url
+
+        desc = ''
+        if replying_to:
+            replying_to = replying_to.strip()
+            if replying_to:
+                desc += '***In response to:***\n'
+                desc += ''.join('> ' + l for l in replying_to.splitlines(keepends=True))
+        desc += '\n\n' + content
+        
+        super().__init__(
+            description=desc,
+            **kwargs
+        )
+
+        self.timestamp = timestamp
+
+        if type(author) is not discord.User:
+            author = bot.client.get_user(author)
+        if author is None:
+            self.set_author(name='Unknown author')
+        else:
+            self.set_author(name=author.name, icon_url=author.display_avatar.url)
+    
+    def get_jump_button(self):
+        return discord.ui.Button(
+            emoji='🔗',
+            url=self.jump_url,
+            style=discord.ButtonStyle.grey
+        )
+        
+
 
 quote_group = discord.app_commands.Group(name='quote', description='Weird server-dependent quote stuff!')
 bot.tree.add_command(quote_group)
@@ -203,16 +249,8 @@ class VoteDialog():
 class QuoteView(discord.ui.View):
 
     def __init__(self, quote_data):
-
         super().__init__()
-
         self.quote_data = quote_data
-
-        self.add_item(discord.ui.Button(
-            emoji='🔗',
-            url=f'https://discord.com/channels/{quote_data.SERVER_ID}/{quote_data.CHANNEL_ID}/{quote_data.MESSAGE_ID}',
-            style=discord.ButtonStyle.grey
-        ))
     
     @discord.ui.button(
         emoji='<:CubeReddit:251440616003600384>',
@@ -221,7 +259,6 @@ class QuoteView(discord.ui.View):
     )
     async def vote(self, ctx : discord.Interaction, button : discord.ui.Button):
         await VoteDialog(self.quote_data.ID, ctx.user.id).send(ctx)
-
 
 @quote_group.command(name='random', description='Get a random quote from someone in this server!')
 async def random_quote(ctx : discord.Interaction, author : discord.User = None):
@@ -250,26 +287,19 @@ async def get_quote(ctx : discord.Interaction, author : discord.User = None, quo
         ))
         return
 
-    embed = discord.Embed(
-        description=quote_data.CONTENT,
+    embed = MessageEmbed(
+        content=quote_data.CONTENT,
+        author=quote_data.USER_ID,
+        timestamp=datetime.fromtimestamp(quote_data.TIMESTAMP),
+        jump_url=f'https://discord.com/channels/{quote_data.SERVER_ID}/{quote_data.CHANNEL_ID}/{quote_data.MESSAGE_ID}',
+        replying_to=quote_data.REPLYING_TO,
         color=bot.default_color
     )
 
-    embed.timestamp = datetime.fromtimestamp(quote_data.TIMESTAMP)
+    view = QuoteView(quote_data)
+    view.add_item(embed.get_jump_button())
 
-    embed.set_footer(text=f'Quote #{quote_data.ID}  •  Score {'+' if quote_data.SCORE > 0 else ''}{quote_data.SCORE}')
-
-    if author is None:
-        author = bot.client.get_user(quote_data.USER_ID)
-    if author is None:
-        embed.set_author(name='Unknown author')
-    else:
-        embed.set_author(name=author.name, icon_url=author.display_avatar.url)
-
-    await ctx.response.send_message(
-        embed=embed,
-        view=QuoteView(quote_data)
-    )
+    await ctx.response.send_message(embed=embed, view=view)
 
 @bot.tree.context_menu(name='Propose Quote')
 async def propose_quote(ctx : discord.Interaction, message : discord.Message):
@@ -281,7 +311,9 @@ async def propose_quote(ctx : discord.Interaction, message : discord.Message):
         CHANNEL_ID=message.channel.id,
         SERVER_ID=message.guild.id,
         TIMESTAMP=message.created_at.timestamp(),
-        PROPOSED_BY=ctx.user.id
+        PROPOSED_BY=ctx.user.id,
+        REPLYING_TO=(await message.channel.fetch_message(message.reference.message_id)).content
+                        if message.reference is not None else sql.null()
     )
 
     with Session(db.engine) as session:
@@ -457,3 +489,81 @@ async def remove_quote(ctx : discord.Interaction, id : int, reason : str = None)
                 color=0xff0000
             )
         )
+
+class ReviewModal(discord.ui.Modal, title='Add a Quote'):
+
+    quote_owner = discord.ui.TextInput(
+        label='Who said it? Paste their username.',
+        required=True
+    )
+
+    relevant_reply = discord.ui.TextInput(
+        label='If relevant, provide a contextual quote.',
+        required=False
+    )
+
+    quote_content = discord.ui.TextInput(
+        label='The quote.',
+        style=discord.TextStyle.long,
+        required=True
+    )
+
+    message_url = discord.ui.TextInput(
+        label='Link to a relevant message.',
+        style=discord.TextStyle.long,
+        required=True
+    )
+
+    async def on_submit(self, ctx : discord.Interaction):
+
+        try:
+
+            url = self.message_url.value
+            if url.endswith('/'): url = url[:-1]
+            url = url.split('/')
+
+            message_id = int(url[-1])
+            channel_id = int(url[-2])
+            server_id = int(url[-3])
+
+            timestamp = (await (await ctx.guild.fetch_channel(channel_id)).fetch_message(message_id)).created_at.timestamp()
+
+            inserted_id = sql_conn.execute(
+                sql.insert(db.quotes_table)
+                    .values(
+                        MESSAGE_ID=message_id,
+                        CONTENT=self.quote_content.value,
+                        USER_ID=discord.utils.get(ctx.guild.members, name=self.quote_owner.value).id,
+                        CHANNEL_ID=channel_id,
+                        SERVER_ID=server_id,
+                        TIMESTAMP=timestamp,
+                        SCORE=0,
+                        REPLYING_TO=self.relevant_reply.value if self.relevant_reply.value else sql.null()
+                    )
+            ).inserted_primary_key[0]
+
+            sql_conn.commit()
+
+            await ctx.response.send_message(
+                f'Quote added with ID {inserted_id}.',
+                ephemeral=True
+            )
+
+        except Exception as e:
+            await ctx.response.send_message('Something went wrong.', ephemeral=True)
+    
+    async def on_error(self, ctx : discord.Interaction, error : Exception):
+        bot.logger.error(error)
+        await ctx.response.defer(thinking=False)
+
+@quote_group.command(name='add', description='[ADMIN ONLY] Add a quote manually.')
+async def propose_quote(ctx : discord.Interaction):
+
+    if not bot.is_admin(ctx.guild, ctx.user):
+        await ctx.response.send_message(
+            'You must be an administrator to manage quote proposals!',
+            ephemeral=True
+        )
+        return
+
+    await ctx.response.send_modal(ReviewModal())
