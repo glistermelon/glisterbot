@@ -38,6 +38,8 @@ async def dracboard_pin(m : discord.Message):
     await response.add_reaction(REACT_EMOJI)
 
 async def check_message(m : discord.Message):
+
+    if m.channel.id in EXEMPT_CHANNELS: return
     
     c = 0
     users = []
