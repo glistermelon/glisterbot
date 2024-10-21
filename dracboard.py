@@ -9,6 +9,10 @@ REACT_EMOJI ='🧛'
 EMOJIS = '🧛‍♂️🧛‍♀️🧛'
 MINIMUM_REACTION_COUNT = 3
 PING_STR = '<@&1297757042454429809>'
+EXEMPT_CHANNELS = [
+    998219646668898384, # roles
+    1296939876616503297 # dracboard
+]
 
 async def dracboard_pin(m : discord.Message):
 
