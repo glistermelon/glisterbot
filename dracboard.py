@@ -6,7 +6,7 @@ from database import sql, sql_conn
 
 DRACBOARD_CHANNEL_ID = 1296939876616503297
 REACT_EMOJI ='🧛' 
-EMOJIS = '🧛‍♂️🧛‍♀️🧛'
+EMOJIS = '🧛🧛🏻🧛🏼🧛🏽🧛🏾🧛🏿🧛‍♀️🧛🏻‍♀️🧛🏼‍♀️🧛🏽‍♀️🧛🏾‍♀️🧛🏿‍♀️🧛‍♂️🧛🏻‍♂️🧛🏼‍♂️🧛🏽‍♂️🧛🏾‍♂️🧛🏿‍♂️'
 MINIMUM_REACTION_COUNT = 3
 PING_STR = '<@&1297757042454429809>'
 EXEMPT_CHANNELS = [
