@@ -24,15 +24,21 @@ async def dracboard_pin(m : discord.Message):
     )
     sql_conn.commit()
 
+    embed=MessageEmbed(
+        content=m.content,
+        author=m.author,
+        timestamp=m.created_at,
+        jump_url=m.jump_url,
+        color=bot.neutral_color
+    )
+
+    view = discord.ui.View()
+    view.add_item(embed.get_jump_button())
+
     response = await (await bot.client.fetch_channel(DRACBOARD_CHANNEL_ID)).send(
         PING_STR,
-        embed=MessageEmbed(
-            content=m.content,
-            author=m.author,
-            timestamp=m.created_at,
-            jump_url=m.jump_url,
-            color=bot.neutral_color
-        )
+        embed=embed,
+        view=view
     )
 
     await response.add_reaction(REACT_EMOJI)
