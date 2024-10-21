@@ -29,5 +29,5 @@ async def on_message(message):
     if 'on_message' not in listeners:
         return
     for listener in listeners['on_message']:
-        if message.channel is None or listener.channel == message.channel:
+        if listener.channel is None or listener.channel == message.channel:
             await listener.callback(message)
