@@ -11,7 +11,8 @@ MINIMUM_REACTION_COUNT = 3
 PING_STR = '<@&1297757042454429809>'
 EXEMPT_CHANNELS = [
     998219646668898384, # roles
-    1296939876616503297 # dracboard
+    1296939876616503297, # dracboard
+    1028873703863373955 # glisterbot-announcements
 ]
 
 async def dracboard_pin(m : discord.Message):
