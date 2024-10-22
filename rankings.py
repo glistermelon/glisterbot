@@ -569,43 +569,47 @@ def get_ban_member_command(category : Category, description : str):
 
     async def ban_member(ctx : discord.Interaction, user : discord.User, ban : bool = True):
 
-        try:
-            if ban:
-                sql_conn.execute(
-                    postgresql.insert(db.rankings_ban_table).values(
-                        USER_ID=user.id,
-                        SERVER_ID=ctx.guild.id
-                    ).on_conflict_do_nothing(
-                        constraint=db.rankings_ban_constraint
-                    )
+        if not bot.is_admin(ctx.guild, user):
+            await ctx.response.send_message(embed=discord.Embed(
+                title='Only admins can use this command!',
+                color=0xff0000
+            ), ephemeral=True)
+            return
+
+        if ban:
+            sql_conn.execute(
+                postgresql.insert(db.rankings_ban_table).values(
+                    USER_ID=user.id,
+                    SERVER_ID=ctx.guild.id
+                ).on_conflict_do_nothing(
+                    constraint=db.rankings_ban_constraint
                 )
-                sql_conn.commit()
+            )
+            sql_conn.commit()
+            await ctx.response.send_message(embed=discord.Embed(
+                title=f'`{user.name}` was banned from rankings.',
+                color=0xff0000
+            ))
+        else:
+            unbanned = sql_conn.execute(
+                sql.delete(db.rankings_ban_table)
+                    .where(
+                        (db.rankings_ban_table.c.USER_ID == user.id) &
+                        (db.rankings_ban_table.c.SERVER_ID == ctx.guild.id)
+                    )
+            ).rowcount
+            sql_conn.commit()
+            if unbanned == 0:
                 await ctx.response.send_message(embed=discord.Embed(
-                    title=f'`{user.name}` was banned from rankings.',
-                    color=0xff0000
-                ))
+                    title='Unban failed',
+                    description=f'`{user.name}` is not currently banned!',
+                    color=bot.neutral_color
+                ), ephemeral=True)
             else:
-                unbanned = sql_conn.execute(
-                    sql.delete(db.rankings_ban_table)
-                        .where(
-                            (db.rankings_ban_table.c.USER_ID == user.id) &
-                            (db.rankings_ban_table.c.SERVER_ID == ctx.guild.id)
-                        )
-                ).rowcount
-                sql_conn.commit()
-                if unbanned == 0:
-                    await ctx.response.send_message(embed=discord.Embed(
-                        title='Unban failed',
-                        description=f'`{user.name}` is not currently banned!',
-                        color=bot.neutral_color
-                    ), ephemeral=True)
-                else:
-                    await ctx.response.send_message(embed=discord.Embed(
-                        title=f'{user.name} was unbanned from rankings.',
-                        color=0x00ff00
-                    ))
-        except Exception as e:
-            print(e)
+                await ctx.response.send_message(embed=discord.Embed(
+                    title=f'{user.name} was unbanned from rankings.',
+                    color=0x00ff00
+                ))
     
     category.cmd_group.command(name='ban-member', description=description)(ban_member)
 
