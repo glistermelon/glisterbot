@@ -6,12 +6,13 @@ from database import sql, sql_conn
 
 DRACBOARD_CHANNEL_ID = 1296939876616503297
 REACT_EMOJI ='🧛' 
-EMOJIS = '🧛‍♂️🧛‍♀️🧛'
+EMOJIS = '🧛🧛🏻🧛🏼🧛🏽🧛🏾🧛🏿🧛‍♀️🧛🏻‍♀️🧛🏼‍♀️🧛🏽‍♀️🧛🏾‍♀️🧛🏿‍♀️🧛‍♂️🧛🏻‍♂️🧛🏼‍♂️🧛🏽‍♂️🧛🏾‍♂️🧛🏿‍♂️'
 MINIMUM_REACTION_COUNT = 3
 PING_STR = '<@&1297757042454429809>'
 EXEMPT_CHANNELS = [
     998219646668898384, # roles
-    1296939876616503297 # dracboard
+    1296939876616503297, # dracboard
+    1028873703863373955 # glisterbot-announcements
 ]
 
 async def dracboard_pin(m : discord.Message):
@@ -23,20 +24,28 @@ async def dracboard_pin(m : discord.Message):
     )
     sql_conn.commit()
 
+    embed=MessageEmbed(
+        content=m.content,
+        author=m.author,
+        timestamp=m.created_at,
+        jump_url=m.jump_url,
+        color=bot.neutral_color
+    )
+
+    view = discord.ui.View()
+    view.add_item(embed.get_jump_button())
+
     response = await (await bot.client.fetch_channel(DRACBOARD_CHANNEL_ID)).send(
         PING_STR,
-        embed=MessageEmbed(
-            content=m.content,
-            author=m.author,
-            timestamp=m.created_at,
-            jump_url=m.jump_url,
-            color=bot.neutral_color
-        )
+        embed=embed,
+        view=view
     )
 
     await response.add_reaction(REACT_EMOJI)
 
 async def check_message(m : discord.Message):
+
+    if m.channel.id in EXEMPT_CHANNELS: return
     
     c = 0
     users = []
