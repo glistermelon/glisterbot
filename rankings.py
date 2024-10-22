@@ -569,7 +569,7 @@ def get_ban_member_command(category : Category, description : str):
 
     async def ban_member(ctx : discord.Interaction, user : discord.User, ban : bool = True):
 
-        if not bot.is_admin(ctx.guild, user):
+        if not bot.is_admin(ctx.guild, ctx.user):
             await ctx.response.send_message(embed=discord.Embed(
                 title='Only admins can use this command!',
                 color=0xff0000
