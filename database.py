@@ -152,6 +152,15 @@ rankings_blacklist_table = sql.Table(
     rankings_blacklist_constraint
 )
 
+rankings_ban_constraint = sql.UniqueConstraint('USER_ID', 'SERVER_ID')
+rankings_ban_table = sql.Table(
+    'RankingsBannedMembers',
+    sql_metadata,
+    sql.Column('USER_ID', sql.BigInteger),
+    sql.Column('SERVER_ID', sql.BigInteger),
+    rankings_ban_constraint
+)
+
 reddit_posts_table = sql.Table(
     'MonitoredRedditPosts',
     sql_metadata,
@@ -228,7 +237,7 @@ dracboard_table = sql.Table(
 
 for table in (msg_table, mentions_table, role_mentions_table, reactions_table, channel_table, streak_table, profanity_table,
               rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table, reddit_posts_table, minecraft_users_table,
-              quotes_table, quote_score_table, quote_proposals_table):
+              quotes_table, quote_score_table, quote_proposals_table, rankings_ban_table):
     if engine.dialect.has_table(sql_conn, table.name):
         sql_metadata.remove(table)
     sql_metadata.create_all(engine)
