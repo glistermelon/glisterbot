@@ -218,6 +218,6 @@ async def lazy_workaround():
             wait = 10 * fail_count
             fail_count += 1
             bot.logger.info(f'Attempting to restart deletion tracker in {wait} seconds.')
-            asyncio.sleep(wait)
+            await asyncio.sleep(wait)
 
 bot.run_on_ready.append(lazy_workaround())
