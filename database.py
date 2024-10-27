@@ -235,9 +235,22 @@ dracboard_table = sql.Table(
     sql.Column('MESSAGE_ID', sql.BigInteger)
 )
 
+vocab_constraint = sql.UniqueConstraint('WORD', 'USER', 'LANG', 'REVERSE')
+vocab_table = sql.Table(
+    'Vocabulary',
+    sql_metadata,
+    sql.Column('WORD', sql.Text),
+    sql.Column('USER', sql.BigInteger),
+    sql.Column('SCORE', sql.Integer),
+    sql.Column('LANG', sql.String(2)),
+    sql.Column('REVERSE', sql.Boolean),
+    sql.Column('ENGLISH', sql.Text),
+    vocab_constraint
+)
+
 for table in (msg_table, mentions_table, role_mentions_table, reactions_table, channel_table, streak_table, profanity_table,
               rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table, reddit_posts_table, minecraft_users_table,
-              quotes_table, quote_score_table, quote_proposals_table, rankings_ban_table):
+              quotes_table, quote_score_table, quote_proposals_table, rankings_ban_table, vocab_table):
     if engine.dialect.has_table(sql_conn, table.name):
         sql_metadata.remove(table)
     sql_metadata.create_all(engine)

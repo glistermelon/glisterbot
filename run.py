@@ -17,7 +17,8 @@ import minecraft
 import counting_thing
 import quote
 import STOP_PINGING_ME
-import dracboard              
+import dracboard  
+import vocab
 
 log_handler = bot.LogHandler()
 bot.logger.addHandler(log_handler)

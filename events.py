@@ -21,7 +21,7 @@ def add_listener(event: str, callback, *args, **kwargs):
 def rm_listener(event : str, callback):
     if event not in listeners or callback is None:
         return
-    listeners[event] = [listener for listener in listeners[event] if (listener != callback) and listener.callback != callback]
+    listeners[event] = [listener for listener in listeners[event] if listener != callback and listener.callback != callback]
 
 
 @bot.client.event
