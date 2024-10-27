@@ -34,7 +34,7 @@ with open('config.json') as file:
 client = discord.Client(intents=discord.Intents.all(), activity=discord.Activity(type=discord.ActivityType.watching, name="1984"))
 tree = app_commands.CommandTree(client)
 default_color = 0x1f8b4c
-neutral_color = 0x2b2d31
+neutral_color = 0x22212c
 
 def commafy(number):
     return '{:,}'.format(number)
