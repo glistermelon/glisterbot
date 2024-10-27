@@ -120,20 +120,20 @@ async def test_vocab(ctx : discord.Interaction, language : discord.app_commands.
         embed.description = f'Nobody answered correctly in time!'
     await ctx.edit_original_response(embed=embed)
 
-    new_score = verbs[choice] + (1 if answer_message else -1)
+    score_delta = 1 if answer_message else -1
     sql_conn.execute(
         postgresql.insert(db.vocab_table)
             .values(
                 WORD=choice[0],
-                USER=ctx.user.id,
-                SCORE=new_score,
+                USER=answer_message.author.id if answer_message else ctx.user.id,
+                SCORE=score_delta,
                 LANG=language,
                 REVERSE=reverse,
                 ENGLISH=choice[1]
             )
             .on_conflict_do_update(
                 constraint=db.vocab_constraint,
-                set_=dict(SCORE=new_score)
+                set_=dict(SCORE=db.vocab_table.c.SCORE + score_delta)
             )
     )
     sql_conn.commit()
