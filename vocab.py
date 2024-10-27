@@ -70,7 +70,6 @@ async def test_vocab(ctx : discord.Interaction, language : discord.app_commands.
     wait_task = None
     answer_message = None
     async def check(m : discord.Message):
-        if m.author != ctx.user: return
         content = m.content.strip().lower()
         given_up = content == 'idk'
         answered = content == choice_answer
@@ -107,18 +106,18 @@ async def test_vocab(ctx : discord.Interaction, language : discord.app_commands.
             reference=answer_message
         )
         embed.color = 0x00ff00
-        embed.description = f'Translated correctly!'
+        embed.description = f'Translated correctly by <@{answer_message.author.id}>!'
     else:
         await ctx.channel.send(
             embed=discord.Embed(
                 color=0xff0000,
-                title='You didn\'t answer correctly in time!',
+                title='Nobody answered correctly in time!',
                 description=f'The correct answer was:  `{choice_answer}`.'
             ),
             reference=await ctx.original_response()
         )
         embed.color = 0xff0000
-        embed.description = f'You didn\'t answer correctly in time!'
+        embed.description = f'Nobody answered correctly in time!'
     await ctx.edit_original_response(embed=embed)
 
     new_score = verbs[choice] + (1 if answer_message else -1)
