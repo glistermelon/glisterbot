@@ -22,11 +22,10 @@ sql_metadata = sql.MetaData()
 streak_table = sql.Table(
     'Streaks',
     sql_metadata,
-    sql.Column('CHANNEL', sql.BigInteger, primary_key=True),
-    sql.Column('PICTIONARY_USER', sql.BigInteger),
-    sql.Column('PICTIONARY', sql.Integer),
-    sql.Column('MUSIC_USER', sql.BigInteger),
-    sql.Column('MUSIC', sql.Integer)
+    sql.Column('USER', sql.BigInteger),
+    sql.Column('CHANNEL', sql.BigInteger),
+    sql.Column('TYPE', sql.Integer),
+    sql.Column('COUNT', sql.Integer)
 )
 
 timespan_table = sql.Table(
@@ -248,9 +247,16 @@ vocab_table = sql.Table(
     vocab_constraint
 )
 
+mute_table = sql.Table(
+    'MuteTime',
+    sql_metadata,
+    sql.Column('USER_ID', sql.BigInteger, primary_key=True),
+    sql.Column('TIME', sql.Integer)
+)
+
 for table in (msg_table, mentions_table, role_mentions_table, reactions_table, channel_table, streak_table, profanity_table,
               rankings_cat_table, rankings_item_table, rankings_table, rankings_kick_table, reddit_posts_table, minecraft_users_table,
-              quotes_table, quote_score_table, quote_proposals_table, rankings_ban_table, vocab_table):
+              quotes_table, quote_score_table, quote_proposals_table, rankings_ban_table, vocab_table, mute_table):
     if engine.dialect.has_table(sql_conn, table.name):
         sql_metadata.remove(table)
     sql_metadata.create_all(engine)
