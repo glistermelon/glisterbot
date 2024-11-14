@@ -111,11 +111,13 @@ class WordBomb:
         for file in os.listdir('wordbomb/words') if file.endswith('.json')
     }
 
-    def __init__(self, ctx : discord.Interaction, difficulty : str, language : str):
+    def __init__(self, ctx : discord.Interaction, difficulty : str, practice : bool, language : str):
 
         self.ctx = ctx
 
         self.difficulty = difficulty
+        self.practice = practice
+        self.end_practice = False
         self.language = language
         self.phrases = os.listdir(f'wordbomb/words/{language}/{difficulty}')
         self.dictionary = WordBomb.dictionaries[language]
@@ -171,6 +173,15 @@ class WordBomb:
         async def help(self, ctx, button):
             await ctx.response.send_message(embed=WordBomb.help, ephemeral=True)
     
+    class PracticeView(discord.ui.View):
+
+        def __init__(self, game):
+            self.game = game
+
+        @discord.ui.button(label='End Practice', style=discord.ButtonStyle.danger)
+        async def end_practice(self, ctx : discord.Interaction, button : discord.Button):
+            self.game.end_practice = True
+    
     class Player:
 
         def __init__(self, user : discord.User, lives : int):
@@ -208,7 +219,8 @@ class WordBomb:
     async def add_player(self, user : discord.User):
         if self.includes_player(user): return
         self.players.append(WordBomb.Player(user, self.config.lives))
-        await self.update_queue_embed()
+        if not self.practice:
+            await self.update_queue_embed()
 
     async def remove_player(self, user : discord.User, defeated : bool = False):
         for i in range(len(self.players)):
@@ -244,19 +256,24 @@ class WordBomb:
 
         Game.claim_channel(self.ctx.channel)
 
-        self.view = WordBomb.View()
-        self.view.init(self)
+        if not self.practice:
 
-        self.queue_embed = discord.Embed(
-            title='Word Bomb',
-            description=self.get_queue_description(),
-            color=bot.default_color
-        )
-        image = discord.File("wordbomb/bomb.png",filename="bomb.png")
-        self.queue_embed.set_thumbnail(url="attachment://bomb.png")
-        await self.ctx.response.send_message(file=image, embed=self.queue_embed, view=self.view)
+            self.view = WordBomb.View()
+            self.view.init(self)
+
+            self.queue_embed = discord.Embed(
+                title='Word Bomb',
+                description=self.get_queue_description(),
+                color=bot.default_color
+            )
+            image = discord.File("wordbomb/bomb.png",filename="bomb.png")
+            self.queue_embed.set_thumbnail(url="attachment://bomb.png")
+            await self.ctx.response.send_message(file=image, embed=self.queue_embed, view=self.view)
 
         await self.add_player(self.ctx.user)
+
+        if self.practice:
+            await self.play_game()
     
     async def cancel_game(self):
         if self.started: return
@@ -270,18 +287,24 @@ class WordBomb:
         self.started = True
         self.view.stop()
         shuffle(self.players)
-        while len(self.players) > 1:
+        while len(self.players) > 1 and not self.end_practice:
             for player in self.players:
                 await self.test_player(player)
-        winner = self.players[0]
-        score = WordBomb.score(len(self.defeated_players), self.config.time, winner.lives, self.difficulty)
-        embed=discord.Embed(
-            title=f'{winner.user.name} is the victor! :partying_face:',
-            description=f'<@{winner.user.id}>, you earned {bot.commafy(score)} points.',
-            color=0x00FF00
-        )
-        embed.set_image(url=winner.user.display_avatar.url)
-        await self.ctx.channel.send(embed=embed)
+        if not self.practice:
+            winner = self.players[0]
+            score = WordBomb.score(len(self.defeated_players), self.config.time, winner.lives, self.difficulty)
+            embed=discord.Embed(
+                title=f'{winner.user.name} is the victor! :partying_face:',
+                description=f'<@{winner.user.id}>, you earned {bot.commafy(score)} points.',
+                color=0x00FF00
+            )
+            embed.set_image(url=winner.user.display_avatar.url)
+            await self.ctx.channel.send(embed=embed)
+        else:
+            await self.ctx.channel.send(embed=discord.Embed(
+                title='Practice ended',
+                color=0xff0000
+            ))
         Game.free_channel(self.ctx.channel)
     
     async def test_player(self, player : Player):
@@ -302,7 +325,12 @@ class WordBomb:
             color = bot.neutral_color
         )
         embed.set_thumbnail(url=player.user.display_avatar.url)
-        await self.ctx.channel.send(embed=embed)
+        view = None
+        if self.practice:
+            embed.set_footer('Practice Mode')
+            embed.color = 0x3498db
+            view = WordBomb.PracticeView(self)
+        await self.ctx.channel.send(embed=embed, view=view)
 
         self.active_user = player.user
         self.phrase = phrase
@@ -383,8 +411,8 @@ class WordBomb:
     discord.app_commands.Choice(name='español', value='es'),
     discord.app_commands.Choice(name='français', value='fr')
 ])
-async def callback(ctx : discord.Interaction, difficulty : discord.app_commands.Choice[str], language : discord.app_commands.Choice[str] = None):
+async def callback(ctx : discord.Interaction, difficulty : discord.app_commands.Choice[str], practice : bool = False, language : discord.app_commands.Choice[str] = None):
     if not Game.is_channel_free(ctx.channel):
         await ctx.response.send_message('There is already a game present in this channel!',ephemeral=True)
         return
-    await WordBomb(ctx, difficulty.value, language.value if language else 'en').start_queue()
+    await WordBomb(ctx, difficulty.value, practice, language.value if language else 'en').start_queue()
