@@ -292,7 +292,7 @@ class WordBomb:
         if not self.practice:
             self.view.stop()
         shuffle(self.players)
-        while len(self.players) > 1 and not self.end_practice:
+        while len(self.players) > 1 or (self.practice not self.end_practice):
             for player in self.players:
                 await self.test_player(player)
         if not self.practice:
