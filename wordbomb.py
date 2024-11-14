@@ -5,6 +5,10 @@ import json
 import bot
 import asyncio
 import events
+import os
+import base64
+import math
+from unidecode import unidecode
 
 class Game:
     channels = []
@@ -38,19 +42,83 @@ diff_freq = {
     'hard': 500
 }
 
-frequencies = {}
+language_names = {
+    'en': 'english',
+    'es': 'español',
+    'fr': 'français'
+}
+
+def extract_phrases(word_list : list[str], target_period : int):
+    phrases = {}
+    for word in word_list:
+        for phrase_len in range(2, 4):
+            for i in range(len(word) - phrase_len + 1):
+                phrase = word[i : i + phrase_len]
+                try:
+                    phrases[phrase] += 1
+                except:
+                    phrases[phrase] = 1
+    for phrase, count in phrases.items():
+        period = len(word_list) / count
+        if period <= target_period:
+            yield phrase, [i for i in range(len(word_list)) if phrase in word_list[i]], period
+
+def encode_number_list(numbers : list[int]):
+    numbers = sorted(numbers)
+    numbers = [numbers[0]] + [numbers[i] - numbers[i - 1] for i in range(1, len(numbers))]
+    byte_list = bytearray()
+    for n in numbers:
+        length = math.ceil(math.log2(n + 1) / 8)
+        byte_list.append(length)
+        byte_list += n.to_bytes(length)
+    return bytes(byte_list)
+
+def decode_number_list(byte_list : bytes):
+    i = 0
+    numbers = []
+    while i < len(byte_list):
+        length = byte_list[i]
+        numbers.append(int.from_bytes(byte_list[i + 1 : i + 1 + length]))
+        i += length + 1
+    for i in range(1, len(numbers)):
+        numbers[i] += numbers[i - 1]
+    return numbers
+
+def update_phrase_cache():
+    for language in ('en', 'es', 'fr'):
+        if language in os.listdir('wordbomb/words'):
+            continue
+        print(f'Updating phrase cache for language: \'{language}\'')
+        word_list = json.loads(open(f'wordbomb/words/{language}.json').read())
+        os.mkdir(f'wordbomb/words/{language}')
+        for diff_name, diff_period in diff_freq.items():
+            os.mkdir(f'wordbomb/words/{language}/{diff_name}')
+        for phrase, word_ids, period in extract_phrases(word_list, max(diff_freq.values())):
+            encoded = str(base64.urlsafe_b64encode(bytes(ord(c) for c in phrase)))[2:-1]
+            for diff_name, diff_period in diff_freq.items():
+                data = encode_number_list(word_ids)
+                if period <= diff_period:
+                    with open(f'wordbomb/words/{language}/{diff_name}/{encoded}', 'wb') as file:
+                        file.write(data)
+
+update_phrase_cache()
 
 class WordBomb:
 
     help = get_help_embed()
-    words = json.loads(open('wordbomb/dictionary.json').read())
-    phrases = None
+    dictionaries = {
+        file[:file.index('.')] : json.loads(open(f'wordbomb/words/{file}').read())
+        for file in os.listdir('wordbomb/words') if file.endswith('.json')
+    }
 
-    def __init__(self, ctx : discord.Interaction, difficulty : str):
+    def __init__(self, ctx : discord.Interaction, difficulty : str, language : str):
 
         self.ctx = ctx
 
         self.difficulty = difficulty
+        self.language = language
+        self.phrases = os.listdir(f'wordbomb/words/{language}/{difficulty}')
+        self.dictionary = WordBomb.dictionaries[language]
 
         self.players = []
         self.defeated_players = []
@@ -69,22 +137,6 @@ class WordBomb:
         score = ((time - 20) ** 2) / 80 * 60000 / diff_freq[difficulty] * number / 4
         if score != 0: score += 75 * lives
         return int(score)
-
-    @staticmethod
-    def extract_phrases(frequency : int):
-        phrases = {}
-        for word in WordBomb.words:
-            for phrase_len in range(2, 4):
-                for i in range(len(word) - phrase_len + 1):
-                    phrase = word[i : i + phrase_len]
-                    try:
-                        phrases[phrase] += 1
-                    except:
-                        phrases[phrase] = 1
-        num_words = len(WordBomb.words)
-        for phrase, count in phrases.items():
-            frequencies[phrase] = count / num_words
-        return [phrase for phrase, count in phrases.items() if count / num_words >= 1 / frequency]
 
     class View(discord.ui.View):
 
@@ -149,9 +201,7 @@ class WordBomb:
             return self.lives == 0
 
     async def update_queue_embed(self):
-        desc = f'**Starting Lives:** {self.config.lives}\n**Turn Time:** {self.config.time}\n**Players:**'
-        for player in self.players:
-            desc += f'\n<@{player.user.id}>'
+        desc = self.get_queue_description()
         self.queue_embed.description = desc
         await self.ctx.edit_original_response(embed=self.queue_embed)
 
@@ -175,16 +225,31 @@ class WordBomb:
                 return True
         return False
     
+    def get_queue_description(self):
+
+        lang = language_names[self.language]
+        lang = lang[0].upper() + lang[1:]
+
+        desc = f'**Starting Lives:** {self.config.lives}'
+        desc += f'\n**Turn Time:** {self.config.time}'
+        desc += f'\n**Language:** {lang}'
+        desc += f'\n**Players:**'
+        
+        for player in self.players:
+            desc += f'\n<@{player.user.id}>'
+
+        return desc
+    
     async def start_queue(self):
 
         Game.claim_channel(self.ctx.channel)
 
         self.view = WordBomb.View()
         self.view.init(self)
-        
+
         self.queue_embed = discord.Embed(
             title='Word Bomb',
-            description=f'**Starting Lives:** {self.config.lives}\n**Turn Time:** {self.config.time}\n**Players:**\n<@{self.ctx.user.id}>',
+            description=self.get_queue_description(),
             color=bot.default_color
         )
         image = discord.File("wordbomb/bomb.png",filename="bomb.png")
@@ -205,7 +270,7 @@ class WordBomb:
         self.started = True
         self.view.stop()
         shuffle(self.players)
-        while len(self.players) > 1:
+        while len(self.players) >= 1: # todo
             for player in self.players:
                 await self.test_player(player)
         winner = self.players[0]
@@ -220,8 +285,9 @@ class WordBomb:
         Game.free_channel(self.ctx.channel)
     
     async def test_player(self, player : Player):
-        phrases = WordBomb.phrases[self.difficulty]
-        phrase = phrases[randrange(len(phrases))]
+        phrase = self.phrases[randrange(len(self.phrases))]
+        self.answer_indices = decode_number_list(open(f'wordbomb/words/{self.language}/{self.difficulty}/{phrase}', 'rb').read())
+        phrase = str(base64.urlsafe_b64decode(bytes([ord(c) for c in phrase])))[2:-1]
         alphabet = ''
         for s in ('abcdefghijklm', 'nopqrstuvwxyz'):
             for c in s:
@@ -263,11 +329,11 @@ class WordBomb:
     
     async def callback(self, msg : discord.Message):
         if msg.author != self.active_user: return
-        content = msg.content.strip().lower()
+        content = unidecode(msg.content.strip().lower())
         if self.phrase in content and content in self.used_words:
             await msg.add_reaction('🔂')
             return
-        if self.phrase not in content or content not in WordBomb.words:
+        if self.phrase not in content or content not in (self.dictionary[i] for i in self.answer_indices):
             await msg.add_reaction('❌')
             return
         
@@ -302,12 +368,6 @@ class WordBomb:
 
         self.event.set()
 
-WordBomb.phrases = {
-    'easy': WordBomb.extract_phrases(100),
-    'medium': WordBomb.extract_phrases(300),
-    'hard': WordBomb.extract_phrases(500)
-}
-
 #@discord.app_commands.describe(
 #        lives="The number of times a player can fail before they're eliminated.",
 #        time="The amount of time (in seconds) each player is given to guess.",
@@ -318,8 +378,13 @@ WordBomb.phrases = {
     discord.app_commands.Choice(name='medium', value='medium'),
     discord.app_commands.Choice(name='hard', value='hard')
 ])
-async def callback(ctx : discord.Interaction, difficulty : discord.app_commands.Choice[str]):
+@discord.app_commands.choices(language=[
+    discord.app_commands.Choice(name='english', value='en'),
+    discord.app_commands.Choice(name='español', value='es'),
+    discord.app_commands.Choice(name='français', value='fr')
+])
+async def callback(ctx : discord.Interaction, difficulty : discord.app_commands.Choice[str], language : discord.app_commands.Choice[str] = None):
     if not Game.is_channel_free(ctx.channel):
         await ctx.response.send_message('There is already a game present in this channel!',ephemeral=True)
         return
-    await WordBomb(ctx, difficulty.value).start_queue()
+    await WordBomb(ctx, difficulty.value, language.value if language else 'en').start_queue()
