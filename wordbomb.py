@@ -270,7 +270,7 @@ class WordBomb:
         self.started = True
         self.view.stop()
         shuffle(self.players)
-        while len(self.players) >= 1: # todo
+        while len(self.players) > 1:
             for player in self.players:
                 await self.test_player(player)
         winner = self.players[0]
