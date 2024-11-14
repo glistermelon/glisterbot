@@ -182,6 +182,9 @@ class WordBomb:
 
         @discord.ui.button(label='End Practice', style=discord.ButtonStyle.red)
         async def end_practice(self, ctx : discord.Interaction, button : discord.Button):
+            if ctx.user.id != self.game.ctx.user.id:
+                await ctx.response.send_message('This is not your practice game!', ephemeral=True)
+                return
             self.game.end_practice = True
             if self.game.event and not self.game.event.is_set():
                 self.game.event.set()
