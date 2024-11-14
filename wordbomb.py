@@ -327,7 +327,7 @@ class WordBomb:
         embed.set_thumbnail(url=player.user.display_avatar.url)
         view = None
         if self.practice:
-            embed.set_footer('Practice Mode')
+            embed.set_footer(text='Practice Mode')
             embed.color = 0x3498db
             view = WordBomb.PracticeView(self)
         await self.ctx.channel.send(embed=embed, view=view)
