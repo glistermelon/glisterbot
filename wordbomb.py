@@ -289,7 +289,8 @@ class WordBomb:
     async def play_game(self):
         if self.cancelled: return
         self.started = True
-        self.view.stop()
+        if not self.practice:
+            self.view.stop()
         shuffle(self.players)
         while len(self.players) > 1 and not self.end_practice:
             for player in self.players:
