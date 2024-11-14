@@ -143,6 +143,7 @@ class WordBomb:
     class View(discord.ui.View):
 
         def init(self, game):
+            super().__init__()
             self.game = game
 
         @discord.ui.button(label="Start Game", style=discord.ButtonStyle.green)
@@ -176,12 +177,15 @@ class WordBomb:
     class PracticeView(discord.ui.View):
 
         def __init__(self, game):
+            super().__init__()
             self.game = game
 
-        @discord.ui.button(label='End Practice', style=discord.ButtonStyle.danger)
+        @discord.ui.button(label='End Practice', style=discord.ButtonStyle.red)
         async def end_practice(self, ctx : discord.Interaction, button : discord.Button):
             self.game.end_practice = True
-            await self.game.ctx.channel.send(embed=discord.Embed(
+            if self.game.event and not self.game.event.is_set():
+                self.game.event.set()
+            await ctx.response.send_message(embed=discord.Embed(
                 title='Practice ended',
                 color=0xff0000
             ))
@@ -273,6 +277,9 @@ class WordBomb:
             image = discord.File("wordbomb/bomb.png",filename="bomb.png")
             self.queue_embed.set_thumbnail(url="attachment://bomb.png")
             await self.ctx.response.send_message(file=image, embed=self.queue_embed, view=self.view)
+        
+        else:
+            await self.ctx.response.send_message('Starting practice...')
 
         await self.add_player(self.ctx.user)
 
@@ -322,13 +329,12 @@ class WordBomb:
         embed = discord.Embed(
             title = f"**{phrase.upper()}**",
             description = f"It's <@{player.user.id}>'s turn!\n\n{alphabet}",
-            color = bot.neutral_color
+            color = bot.neutral_color if not self.practice else 0x3498db
         )
         embed.set_thumbnail(url=player.user.display_avatar.url)
         view = None
         if self.practice:
             embed.set_footer(text='Practice Mode')
-            embed.color = 0x3498db
             view = WordBomb.PracticeView(self)
         await self.ctx.channel.send(embed=embed, view=view)
 
@@ -342,7 +348,8 @@ class WordBomb:
         except asyncio.TimeoutError:
             pass
         else:
-            await self.event.wait()
+            if not self.end_practice:
+                await self.event.wait()
             events.rm_listener('on_message', self.callback)
             return
         events.rm_listener('on_message', self.callback)
@@ -350,7 +357,10 @@ class WordBomb:
         embed = None
         if player.is_dead():
             embed = discord.Embed(description=f"**<@{player.user.id}> is out!**", color=0xff0000)
-            await self.remove_player(player.user, True)
+            if self.practice:
+                self.end_practice = True
+            else:
+                await self.remove_player(player.user, True)
         else:
             embed = discord.Embed(description=f"**<@{player.user.id}> failed!** {player.lives} lives left", color=0xff9900)
         await self.ctx.channel.send(embed=embed)
