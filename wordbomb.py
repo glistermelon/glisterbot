@@ -181,6 +181,10 @@ class WordBomb:
         @discord.ui.button(label='End Practice', style=discord.ButtonStyle.danger)
         async def end_practice(self, ctx : discord.Interaction, button : discord.Button):
             self.game.end_practice = True
+            await self.game.ctx.channel.send(embed=discord.Embed(
+                title='Practice ended',
+                color=0xff0000
+            ))
     
     class Player:
 
@@ -300,11 +304,6 @@ class WordBomb:
             )
             embed.set_image(url=winner.user.display_avatar.url)
             await self.ctx.channel.send(embed=embed)
-        else:
-            await self.ctx.channel.send(embed=discord.Embed(
-                title='Practice ended',
-                color=0xff0000
-            ))
         Game.free_channel(self.ctx.channel)
     
     async def test_player(self, player : Player):
