@@ -45,7 +45,8 @@ diff_freq = {
 language_names = {
     'en': 'english',
     'es': 'español',
-    'fr': 'français'
+    'fr': 'français',
+    'sk': 'slovenský'
 }
 
 def extract_phrases(word_list : list[str], target_period : int):
@@ -85,7 +86,7 @@ def decode_number_list(byte_list : bytes):
     return numbers
 
 def update_phrase_cache():
-    for language in ('en', 'es', 'fr'):
+    for language in ('en', 'es', 'fr', 'sk'):
         if language in os.listdir('wordbomb/words'):
             continue
         print(f'Updating phrase cache for language: \'{language}\'')
@@ -419,7 +420,8 @@ class WordBomb:
 @discord.app_commands.choices(language=[
     discord.app_commands.Choice(name='english', value='en'),
     discord.app_commands.Choice(name='español', value='es'),
-    discord.app_commands.Choice(name='français', value='fr')
+    discord.app_commands.Choice(name='français', value='fr'),
+    discord.app_commands.Choice(name='slovenský', value='sk')
 ])
 async def callback(ctx : discord.Interaction, difficulty : discord.app_commands.Choice[str], practice : bool = False, language : discord.app_commands.Choice[str] = None):
     if not Game.is_channel_free(ctx.channel):
