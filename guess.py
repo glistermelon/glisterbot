@@ -320,6 +320,14 @@ async def messages(ctx : discord.Interaction):
 
     view = discord.ui.View(timeout=15)
 
+    jump_button = discord.ui.Button(
+        emoji='🔗',
+        label='Jump to Message',
+        url=guess_msg.JUMP_URL,
+        style=discord.ButtonStyle.grey,
+        row=2
+    )
+
     correct_button_index = random.randrange(4)
     button_rows = [0, 0, 1, 1]
     correct_button = discord.ui.Button(
@@ -340,6 +348,7 @@ async def messages(ctx : discord.Interaction):
             embed.color = 0x00ff00
         for b in buttons:
             b.disabled = True
+        view.add_item(jump_button)
         await ctx.edit_original_response(embed=embed, view=view)
         view.stop()
 
@@ -360,7 +369,10 @@ async def messages(ctx : discord.Interaction):
     
     async def on_timeout(self : discord.ui.View):
         embed.color = 0xff0000
-        await ctx.edit_original_response(embed=embed)
+        for b in buttons:
+            b.disabled = True
+        view.add_item(jump_button)
+        await ctx.edit_original_response(embed=embed, view=view)
         await ctx.channel.send(
             embed=discord.Embed(
                 color=0xff0000,
