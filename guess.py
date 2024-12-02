@@ -316,6 +316,7 @@ async def messages(ctx : discord.Interaction):
         description=guess_msg.CONTENT,
         color=bot.neutral_color
     )
+    embed.set_author(name=ctx.user.name, icon_url=ctx.user.display_avatar.url)
 
     view = discord.ui.View(timeout=15)
 
@@ -330,6 +331,7 @@ async def messages(ctx : discord.Interaction):
 
     async def callback(button : discord.Button, button_ctx : discord.Interaction):
         await button_ctx.response.defer(thinking=False)
+        if button_ctx.user != ctx.user: return
         correct_button.style = discord.ButtonStyle.green
         if button is not correct_button:
             button.style = discord.ButtonStyle.red
