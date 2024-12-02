@@ -120,14 +120,15 @@ class Guess:
         self.begin_embed = None
         self.begin_time = None
 
-        dir_name = f"guess/{self.guess_type}/{self.category}/options"
+        dir_root = f'guess/{self.guess_type}/'
+        if self.category: dir_root += self.category + '/'
 
         self.info = None
-        with open(f"guess/{self.guess_type}/{self.category}/info.json") as file:
+        with open(dir_root + 'info.json') as file:
             self.info = json.loads(file.read())
         self.term = self.info["term"]
 
-        options = [os.path.join(dp, f).replace('\\', '/') for dp, _, fn in os.walk(os.path.expanduser(dir_name))
+        options = [os.path.join(dp, f).replace('\\', '/') for dp, _, fn in os.walk(os.path.expanduser(dir_root + 'options'))
                    for f in fn]
         file_paths = list(options)
         options = [choice[choice.rindex("/options/") + len("/options/") : choice.index('.')] for choice in options]
@@ -283,3 +284,89 @@ class GuessMusic(Guess):
         self.begin_embed.colour = 0xFF0000
         await self.ctx.edit_original_response(embed=self.begin_embed)
         reset_streak(self.ctx.channel, False)
+
+from sqlalchemy.sql.expression import func
+import database
+from database import sql, sql_conn
+from functools import partial
+import types
+
+@guess_callback.command(name='messages', description='Guess who said something in this server!')
+async def messages(ctx : discord.Interaction):
+
+    members = [m for m in ctx.guild.members if not m.bot]
+
+    guess_msg = sql_conn.execute(
+        sql.select(database.msg_table)
+            .where(database.msg_table.c.AUTHOR.in_(m.id for m in members))
+            .order_by(func.random())
+            .limit(1)
+    ).first()
+
+
+    correct_answer = None
+    for m in members:
+        if m.id == guess_msg.AUTHOR:
+            correct_answer = m
+            break
+    members.remove(correct_answer)
+
+    embed=discord.Embed(
+        title='Who said this?',
+        description=guess_msg.CONTENT,
+        color=bot.neutral_color
+    )
+
+    view = discord.ui.View(timeout=15)
+
+    correct_button_index = random.randrange(4)
+    button_rows = [0, 0, 1, 1]
+    correct_button = discord.ui.Button(
+        style=discord.ButtonStyle.grey,
+        label=f'{correct_answer.name} — {correct_answer.display_name}',
+        row=button_rows.pop(correct_button_index)
+    )
+    buttons = []
+
+    async def callback(button : discord.Button, button_ctx : discord.Interaction):
+        await button_ctx.response.defer(thinking=False)
+        correct_button.style = discord.ButtonStyle.green
+        if button is not correct_button:
+            button.style = discord.ButtonStyle.red
+            embed.color = 0xff0000
+        else:
+            embed.color = 0x00ff00
+        for b in buttons:
+            b.disabled = True
+        await ctx.edit_original_response(embed=embed, view=view)
+        view.stop()
+
+    for wrong_answer in random.sample(members, 3):
+        button = discord.ui.Button(
+            style=discord.ButtonStyle.grey,
+            label=f'{wrong_answer.name} — {wrong_answer.display_name}',
+            row=button_rows.pop(0)
+        )
+        button.callback = partial(callback, button)
+        buttons.append(button)
+    
+    correct_button.callback = partial(callback, correct_button)
+    buttons.insert(correct_button_index, correct_button)
+
+    for b in buttons:
+        view.add_item(b)
+    
+    async def on_timeout(self : discord.ui.View):
+        embed.color = 0xff0000
+        await ctx.edit_original_response(embed=embed)
+        await ctx.channel.send(
+            embed=discord.Embed(
+                color=0xff0000,
+                title='You ran out of time!'
+            ),
+            reference=await ctx.original_response()
+        )
+    
+    view.on_timeout = types.MethodType(on_timeout, view)
+    
+    await ctx.response.send_message(embed=embed, view=view)
