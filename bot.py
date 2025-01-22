@@ -54,13 +54,10 @@ run_on_ready_tasks = []
 @client.event
 async def on_ready():
 
-    LogHandler.discord_output = discord.Webhook.from_url(
-        'https://discord.com/api/webhooks/1283474938895798344/BILRE-D-8y7FF6sx3XQd4CQsldZ95wKcJL2k-uyw0t7VwshyZe34HydyLOJe4Sq6tDIq',
-        client=client
-    )
+    LogHandler.discord_output = await client.fetch_channel(1283474550599974932)
 
-    #print('syncing tree...')
-    #await tree.sync()
+    print('syncing tree...')
+    await tree.sync()
 
     print('bot ready')
     for f in run_on_ready:

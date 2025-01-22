@@ -12,7 +12,7 @@ import os
 import json
 import logging
 
-webhook_urls = ['https://discord.com/api/webhooks/1282429899730190336/-4KfcLF3oYkjJLsVK1ToX9QAtHxWBQxnoZMweVtmy8E7PPpCe2XXbaVm5LICwA-U1q-Y']
+RGDCTW_REDDIT_DELETION_CHANNEL_ID = 1282429875747295282
 
 max_tracking_period = 2 * 24 * 60 * 60 # 2 days
 
@@ -132,7 +132,7 @@ async def run_deletion_tracker():
     moderators = [user.name async for user in subreddit.moderator]
     moderators.remove('zbot-gd')
     NO_IMAGES_FOR_THESE_RULES_BECAUSE_THEY_MIGHT_BE_REALLY_BAD = [6]
-    webhooks = [discord.Webhook.from_url(url, client=bot.client) for url in webhook_urls]
+    channel = await bot.client.fetch_channel(RGDCTW_REDDIT_DELETION_CHANNEL_ID)
     sub_rules = [rule.short_name async for rule in subreddit.rules]
 
     async for post in tracker.check_posts():
@@ -197,11 +197,10 @@ async def run_deletion_tracker():
             elif post.is_reddit_media_domain and post.domain == 'i.redd.it':
                 embed.set_image(url = post.url)
 
-        for webhook in webhooks:
-            try:
-                await webhook.send(embed=embed)
-            except:
-                print(f'Failed to send to webhook: {webhook.url}')
+        try:
+            await channel.send(embed=embed)
+        except:
+            print(f'Failed to send to reddit removal to channel with id: {channel.id}')
 
 async def lazy_workaround():
     last_fail = 0
