@@ -12,6 +12,8 @@ import json
 from sqlalchemy.orm import Session
 from minecraft import update_names as update_minecraft_names
 
+log_update_callbacks = []
+
 class Timespans:
 
     def __init__(self):
@@ -189,6 +191,12 @@ class TextChannelLogger:
                           end='')
                     last_check = time.time()
                     if sleep: await asyncio.sleep(sleep)
+
+        for fn in log_update_callbacks:
+            try:
+                fn()
+            except Exception as e:
+                bot.logger.error(e)
         
         return messages_logged
 

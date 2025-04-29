@@ -62,3 +62,28 @@ class PaginatedEmbed:
     
     async def send(self):
         await self.ctx.response.send_message(embed=self.get_page(self.page), view=self.view)
+    
+    async def followup(self):
+        await self.ctx.followup.send(embed=self.get_page(self.page), view=self.view)
+
+
+class BasicPaginatedEmbed(PaginatedEmbed):
+
+    def __init__(self, ctx : discord.Interaction, title : str, content : str, lines_per_page : int = 15):
+        super().__init__(ctx)
+        self.title = title
+        self.content = content.splitlines(keepends=False)
+        self.per_page = lines_per_page
+
+    def get_page(self, number):
+        
+        if number < 0: return None
+
+        lines = self.content[self.per_page * number : self.per_page * (number + 1)]
+        if not lines: return None
+        
+        return discord.Embed(
+            title=self.title,
+            description='\n'.join(lines),
+            color=bot.default_color
+        )
