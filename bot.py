@@ -5,6 +5,7 @@ import asyncio
 import logging
 from datetime import datetime
 import os
+from io import BytesIO
 
 if not os.path.exists('logs'): os.mkdir('logs')
 
@@ -13,7 +14,7 @@ logger = logging.getLogger('discord bot error log')
 class LogHandler(logging.FileHandler):
 
     send_tasks = set()
-    discord_output = None
+    discord_output : discord.TextChannel = None
 
     def __init__(self):
         super().__init__(filename='logs/' + str(datetime.now()).replace(':', '-') + '.log', encoding='utf-8', mode='w')
@@ -21,7 +22,18 @@ class LogHandler(logging.FileHandler):
     def emit(self, record):
         super().emit(record)
         if LogHandler.discord_output and record.levelno == logging.ERROR:
-            coroutine = LogHandler.discord_output.send('<@674819147963564054>\n```\n' + self.format(record) + '\n```')
+
+            error_msg = self.format(record)
+            content = '<@674819147963564054>\n```\n' + error_msg + '\n```'
+            file = None
+            if len(content) > 3900:
+                content = '<@674819147963564054>'
+                file = discord.File(
+                    BytesIO(error_msg.encode('utf-8')),
+                    filename='error message.txt'
+                )
+
+            coroutine = LogHandler.discord_output.send(content, file=file)
             task = asyncio.get_running_loop().create_task(coroutine)
             LogHandler.send_tasks.add(task)
             task.add_done_callback(lambda t : LogHandler.send_tasks.remove(t))

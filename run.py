@@ -20,6 +20,7 @@ import STOP_PINGING_ME
 import dracboard  
 import vocab
 import rally_bribe
+import server_age
 
 log_handler = bot.LogHandler()
 bot.logger.addHandler(log_handler)
