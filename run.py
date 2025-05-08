@@ -21,6 +21,7 @@ import dracboard
 import vocab
 import rally_bribe
 import server_age
+import spam
 
 log_handler = bot.LogHandler()
 bot.logger.addHandler(log_handler)
