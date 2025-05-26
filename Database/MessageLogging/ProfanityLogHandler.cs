@@ -6,8 +6,7 @@ using Newtonsoft.Json;
 
 namespace MessageLogging;
 
-public class ServerUpdateQueryResult {
-    public ulong UserId { get; set; }
+class ServerUpdateQueryResult {
     public string Phrase { get; set; }
     public int Count { get; set; }
 }
@@ -35,32 +34,25 @@ public class ProfanityLogHandler(DatabaseContext dbContext)
     {
         string regex_insert = string.Join("|", profanity.Values.SelectMany(l => l));
         string raw_sql =
-            $@"WITH phrase_matches AS (
-            SELECT
-                ""USER_ID"",
-                LOWER(match) AS phrase
-            FROM (
-                SELECT
-                ""USER_ID"",
-                unnest(
-                    regexp_matches(
-                    ""CONTENT"",
-                    '\y(?:{regex_insert})\y',
-                    'gi'
-                    )
-                ) AS match
-                FROM ""MESSAGES""
-                WHERE ""SERVER_ID""='{dbServer.Id}'
-                    AND ""USER_ID""='{dbUser.Id}'
+            $@"
+            WITH phrase_matches AS (
+                SELECT LOWER(match) AS phrase
+                FROM (
+                    SELECT unnest(
+                        regexp_matches(
+                            ""CONTENT"",
+                            '\y(?:{regex_insert})\y',
+                            'gi'
+                        )
+                    ) AS match
+                    FROM ""MESSAGES""
+                    WHERE ""SERVER_ID""='{dbServer.Id}'
+                        AND ""USER_ID""='{dbUser.Id}'
                 )
             )
-            SELECT
-            ""USER_ID"",
-            phrase,
-            COUNT(*) AS count
+            SELECT phrase, COUNT(*) AS count
             FROM phrase_matches
-            GROUP BY ""USER_ID"", phrase
-            ORDER BY ""USER_ID"", phrase;";
+            GROUP BY phrase;";
 
         ulong now = Utility.CurrentTimestamp();
         dbContext.RemoveRange(
