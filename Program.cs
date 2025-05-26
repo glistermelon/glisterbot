@@ -16,7 +16,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 // Initialize configuration from appsettings.json
 
-Configuration configuration = new Configuration();
+Configuration configuration = new();
 Globals.Configuration = configuration;
 
 new ConfigurationBuilder()

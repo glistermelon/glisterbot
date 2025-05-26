@@ -1,3 +1,5 @@
+#pragma warning disable 8618
+
 namespace MessageLogging.DataTypes;
 
 public record TimeRange

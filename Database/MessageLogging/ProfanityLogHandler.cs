@@ -1,4 +1,5 @@
-using System.Threading.Tasks;
+#pragma warning disable 8618
+
 using MessageLogging.DataTypes;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;

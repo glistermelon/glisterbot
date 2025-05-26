@@ -1,3 +1,5 @@
+#pragma warning disable 8618
+
 using NetCord;
 
 public static class Globals

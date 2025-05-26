@@ -1,3 +1,5 @@
+#pragma warning disable 8618
+
 public class Configuration
 {
     public DiscordConfiguration Discord { get; set; }
