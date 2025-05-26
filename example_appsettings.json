@@ -1,0 +1,8 @@
+{
+    "Discord": {
+        "Token": ""
+    },
+    "Database": {
+        "ConnectionString": "Host=127.0.0.1; Port=5432; Database=glisterbot2; Username=postgres; Include Error Detail=True;"
+    }
+}
