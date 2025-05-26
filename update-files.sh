@@ -25,10 +25,8 @@ urlencode_od_awk () {
 FILE_SERVER_URL="https://glisterbot.glisterbyte.com"
 FILE_DIR="files"
 
-# read -p "Enter username for file server: " USERNAME
-# read -p "Enter password for file server: " PASSWORD
-***REMOVED***
-***REMOVED***
+read -p "Enter username for file server: " USERNAME
+read -p "Enter password for file server: " PASSWORD
 
 mkdir -p "$FILE_DIR"
 
