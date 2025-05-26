@@ -40,7 +40,10 @@ public partial class Stats
         List<string> pages = [.. descLines.Chunk(15).Select(c => string.Join("\n", c))];
         if (pages.Count == 0)
         {
-            pages.Add("*This guy has literally never mentioned anyone!*");
+            return new()
+            {
+                Embeds = [embed.Clone().WithDescription("This guy has literally never mentioned anyone!")]
+            };
         }
 
         (embed, var actionRow) = EmbedPaginator.Register(new(embed, pages, 0, Context.Interaction));

@@ -51,6 +51,15 @@ public partial class Stats
         }
         if (fields.Count != 0) embeds.Add(baseEmbed.Clone().WithFields(fields));
 
+        if (embeds.Count == 0) {
+            return new()
+            {
+                Embeds = [baseEmbed.WithDescription(
+                    "This user has never used any profanity ever. WTF? <:Mewhen3:932086577721667624>"
+                )]
+            };
+        }
+
         (var embed, var actionRow) = EmbedPaginator.Register(new(embeds, 0, Context.Interaction));
 
         return new()
