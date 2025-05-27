@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace MessageLogging;
 
-class ServerUpdateQueryResult {
+class ProfanityUpdateQueryResult {
     public string Phrase { get; set; }
     public int Count { get; set; }
 }
@@ -61,7 +61,7 @@ public class ProfanityLogHandler(DatabaseContext dbContext)
                 .ToListAsync()
         );
         await dbContext.ProfanityRecords.AddRangeAsync(
-            (await dbContext.Database.SqlQueryRaw<ServerUpdateQueryResult>(raw_sql)
+            (await dbContext.Database.SqlQueryRaw<ProfanityUpdateQueryResult>(raw_sql)
                 .ToListAsync())
                 .Select(r =>
                 {

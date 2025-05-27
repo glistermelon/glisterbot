@@ -1,0 +1,170 @@
+#pragma warning disable 8618
+
+using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using NetCord;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
+using Npgsql;
+using ScottPlot;
+
+namespace GlisterBot.Commands;
+
+class PhraseFrequencyGraphQueryResult {
+    public string TimeWindow { get; set; }
+    public int Count { get; set; }
+}
+
+public partial class Stats
+{
+    public partial class Graph
+    {
+        [SubSlashCommand("phrase-frequency", "How many times a phrase has been said over time.")]
+        public async Task<InteractionMessageProperties> ExecutePhraseFrequencyGraph(string phrase, TimeUnit timeUnit)
+        {
+            if (Context.Guild == null) return "";
+
+            if (phrase.Length > 100) return new()
+            {
+                Content = "That phrase is too long! Please pick a shorter phrase.",
+                Flags = MessageFlags.Ephemeral
+            };
+
+            string regex = phrase.All(char.IsLetter) ? $@"\y(?:{phrase})\y" : $@"(?<=\s|^){Regex.Escape(phrase)}(?=\s|$)";
+            string raw_sql = $@"
+                WITH phrase_matches AS (
+                    SELECT
+                        LOWER(match) AS phrase,
+                        to_char(to_timestamp(""TIMESTAMP""), '{timeUnit.ToSqlString()}') AS time_window
+                    FROM (
+                        SELECT unnest(
+                            regexp_matches(
+                                ""CONTENT"",
+                                @regex,
+                                'gi'
+                            )
+                        ) AS match,
+                            ""TIMESTAMP""
+                        FROM ""MESSAGES""
+                        WHERE ""SERVER_ID""={Context.Guild.Id}
+                    )
+                )
+                SELECT time_window, COUNT(*) AS count
+                FROM phrase_matches
+                GROUP BY phrase, time_window
+                ORDER BY time_window, phrase";
+            var regexParam = new NpgsqlParameter("regex", regex);
+
+            var results = await new DatabaseContext().Database
+                .SqlQueryRaw<PhraseFrequencyGraphQueryResult>(raw_sql, regexParam)
+                .ToListAsync();
+
+            // remove last result because it's usually the
+            // current time, which has not fully elasped yet
+            results.RemoveAt(results.Count - 1);
+
+            var graph = DrawGraph(results, timeUnit);
+            var embed = new EmbedProperties()
+                .WithTitle($"\"{phrase}\" Usage Frequency")
+                .WithColor(Globals.Colors.DarkGreen)
+                .WithImage(new("attachment://image.png"));
+
+            return new()
+            {
+                Embeds = [embed],
+                Attachments = [new AttachmentProperties("image.png", graph)]
+            };
+        }
+
+        private static MemoryStream DrawGraph(List<PhraseFrequencyGraphQueryResult> data, TimeUnit timeUnit)
+        {
+            DateTime[] dataX = [.. data.Select(r => timeUnit.ParseString(r.TimeWindow))];
+            int[] dataY = [.. data.Select(r => r.Count)];
+
+            Plot plot = new();
+            var line = plot.Add.Scatter(dataX, dataY);
+
+            // Configure horizontal labels
+            var tickGen = new ScottPlot.TickGenerators.DateTimeFixedInterval(
+                timeUnit == TimeUnit.Year ?
+                    new ScottPlot.TickGenerators.TimeUnits.Year()
+                    : new ScottPlot.TickGenerators.TimeUnits.Month(),
+                timeUnit == TimeUnit.Year ? 1 : 3
+            );
+            tickGen.LabelFormatter = timeUnit == TimeUnit.Year ? (t => t.ToString("yyyy")) : (t => t.ToString("MMM yyyy"));
+            tickGen.GetIntervalStartFunc = _ => dataX.First();
+            plot.Axes.DateTimeTicksBottom().TickGenerator = tickGen;
+            plot.Axes.Bottom.TickLabelStyle.Rotation = -90;
+            plot.Axes.Bottom.TickLabelStyle.OffsetY = timeUnit == TimeUnit.Year ? 15 : 30;
+            plot.Axes.Bottom.TickLabelStyle.AntiAliasText = true;
+            plot.Axes.Bottom.TickLabelStyle.FontSize = 10;
+
+            // Configure vertical labels
+            plot.Axes.Left.TickGenerator = new ScottPlot.TickGenerators.NumericAutomatic()
+            {
+                MinimumTickSpacing = 25
+            };
+            plot.Axes.Left.TickLabelStyle.FontSize = 10;
+            plot.Axes.Left.Min = 0;
+
+            // White axes
+            plot.Axes.Left.FrameLineStyle.Color = Colors.White;
+            plot.Axes.Left.TickLabelStyle.ForeColor = Colors.White;
+            plot.Axes.Left.MajorTickStyle.Color = Colors.White;
+            plot.Axes.Bottom.FrameLineStyle.Color = Colors.White;
+            plot.Axes.Bottom.TickLabelStyle.ForeColor = Colors.White;
+            plot.Axes.Bottom.MajorTickStyle.Color = Colors.White;
+
+            // Hide unwanted axes
+            plot.Axes.Right.FrameLineStyle.IsVisible = false;
+            plot.Axes.Top.FrameLineStyle.IsVisible = false;
+
+            // Hide unwanted ticks
+            plot.Axes.Left.MinorTickStyle.Color = Globals.Colors.Graph.Invisible;
+            plot.Axes.Left.MinorTickStyle.Width = 0;
+            plot.Axes.Bottom.MinorTickStyle.Color = Globals.Colors.Graph.Invisible;
+            plot.Axes.Bottom.MinorTickStyle.Width = 0;
+
+            // Set line color
+            line.Color = Globals.Colors.Graph.Blue;
+            line.LineWidth = 2;
+            line.MarkerSize = 0;
+
+            // Set background colors
+            plot.DataBackground.Color = Globals.Colors.Graph.LightGrey;
+            plot.FigureBackground.Color = Globals.Colors.Graph.DarkGrey;
+
+            // Anti-aliasing
+            plot.Axes.AntiAlias(true);
+
+            // Configure background grid
+            plot.Grid.XAxisStyle.MajorLineStyle.IsVisible = false;
+            plot.Grid.YAxisStyle.MajorLineStyle.Width = 1;
+            plot.Grid.YAxisStyle.MajorLineStyle.Color = Globals.Colors.Graph.LighterGrey;
+
+            // Label vertical axis
+            plot.Axes.Left.Label.Text = "Messages";
+            plot.Axes.Left.Label.ForeColor = Colors.White;
+            plot.Axes.Left.Label.FontSize = 12;
+            plot.Axes.Left.Label.Bold = false;
+            plot.Axes.Left.Label.OffsetX = -10;
+
+            // Configure padding
+            plot.Layout.Fixed(new PixelPadding(
+                61 + (dataY.Max().ToString().Length - 3) * 8,
+                15,
+                timeUnit == TimeUnit.Year ? 45 : 68,
+                15
+            ));
+
+            // Set font
+            plot.Axes.Left.Label.FontName = Globals.GraphFontName;
+            plot.Axes.Left.TickLabelStyle.FontName = Globals.GraphFontName;
+            plot.Axes.Bottom.TickLabelStyle.FontName = Globals.GraphFontName;
+
+            var imageBytes = plot.GetImageBytes(400, 300, ScottPlot.ImageFormat.Png);
+            return new MemoryStream(imageBytes);
+        }
+
+    }
+}

@@ -11,6 +11,7 @@ using NetCord;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
 using MessageLogging;
+using Events;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -26,6 +27,10 @@ new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build()
     .Bind(configuration);
+
+// Initialize graph font
+
+Globals.initializePlotFont();
 
 // Set up database
 
@@ -54,10 +59,10 @@ builder.Services
         }
     )
     .AddApplicationCommands()
-    .AddGatewayEventHandlers(typeof(GrabIP).Assembly)
+    .AddGatewayEventHandlers(typeof(GuildCreateEventHandler).Assembly)
     .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 
 await builder.Build()
-    .AddModules(typeof(GrabIP).Assembly)
+    .AddModules(typeof(Stats).Assembly)
     .UseGatewayEventHandlers()
     .RunAsync();
