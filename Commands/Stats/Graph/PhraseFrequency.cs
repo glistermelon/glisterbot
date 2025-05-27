@@ -59,27 +59,57 @@ public partial class Stats
                 .SqlQueryRaw<PhraseFrequencyGraphQueryResult>(raw_sql, regexParam)
                 .ToListAsync();
 
-            // remove last result because it's usually the
-            // current time, which has not fully elasped yet
-            results.RemoveAt(results.Count - 1);
+            // remove last result because if its the
+            // current time window, which has not fully elasped yet
+            var latestTime = timeUnit switch
+            {
+                TimeUnit.Day => DateTime.Now.AddDays(-1),
+                TimeUnit.Week => DateTime.Now.AddDays(-7),
+                TimeUnit.Month => new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddDays(-1),
+                TimeUnit.Year => new DateTime(DateTime.Now.Year, 1, 1).AddDays(-1),
+                _ => throw new Exception("Cannot get latest time with unrecognized TimeUnit")
+            };
+            results.RemoveAll(r => timeUnit.ParseString(r.TimeWindow) > latestTime);
 
-            var graph = DrawGraph(results, timeUnit);
-            var embed = new EmbedProperties()
+            var baseEmbed = new EmbedProperties()
                 .WithTitle($"\"{phrase}\" Usage Frequency")
-                .WithColor(Globals.Colors.DarkGreen)
-                .WithImage(new("attachment://image.png"));
+                .WithColor(Globals.Colors.DarkGreen);
 
+            if (results.Count == 0) return new()
+            {
+                Embeds = [baseEmbed.WithDescription(
+                    "That phrase has never been said before! You could be the first... <:Smoothtroll:960789594658451497>"
+                )]
+            };
+
+            var graph = DrawGraph(results, timeUnit, latestTime);
             return new()
             {
-                Embeds = [embed],
+                Embeds = [baseEmbed.WithImage(new("attachment://image.png"))],
                 Attachments = [new AttachmentProperties("image.png", graph)]
             };
         }
 
-        private static MemoryStream DrawGraph(List<PhraseFrequencyGraphQueryResult> data, TimeUnit timeUnit)
+        private static MemoryStream DrawGraph(List<PhraseFrequencyGraphQueryResult> queryResults, TimeUnit timeUnit, DateTime latestTime)
         {
-            DateTime[] dataX = [.. data.Select(r => timeUnit.ParseString(r.TimeWindow))];
-            int[] dataY = [.. data.Select(r => r.Count)];
+            if (queryResults.Count == 0)
+            {
+                throw new Exception("Cannot draw a graph with no data!");
+            }
+
+            Dictionary<DateTime, int> data = queryResults
+                .ToDictionary(r => timeUnit.ParseString(r.TimeWindow), r => r.Count);
+            foreach (var t in timeUnit.GetAllTimesBetween(data.Keys.First(), latestTime))
+            {
+                if (!data.ContainsKey(t)) data[t] = 0;
+            }
+            List<DateTime> dataX = [];
+            List<int> dataY = [];
+            foreach ((DateTime t, int c) in data.OrderBy(p => p.Key))
+            {
+                dataX.Add(t);
+                dataY.Add(c);
+            }
 
             Plot plot = new();
             var line = plot.Add.Scatter(dataX, dataY);
@@ -151,7 +181,7 @@ public partial class Stats
 
             // Configure padding
             plot.Layout.Fixed(new PixelPadding(
-                61 + (dataY.Max().ToString().Length - 3) * 8,
+                61 + int.Max(dataY.Max().ToString().Length - 3, 0) * 8,
                 15,
                 timeUnit == TimeUnit.Year ? 45 : 68,
                 15
