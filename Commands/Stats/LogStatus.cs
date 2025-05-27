@@ -11,21 +11,48 @@ public partial class Stats
     {
         if (Context.Guild == null) return "";
         var serverId = Context.Guild.Id;
-        IntRangeSet timespans = new(
-            await new DatabaseContext().TimeRanges.Where(t => t.ServerId == serverId).ToListAsync()
-        );
-        string desc = "**Recorded Times**\n" + string.Join("\n", timespans.Ranges.Select(
-            r => $"{Utility.FormatTime.DiscordLong(r.Start)} - {Utility.FormatTime.DiscordLong(r.End)}"
-        ));
 
-        var embed = new EmbedProperties()
+        Dictionary<ulong, IntRangeSet> timespans = (await new DatabaseContext().TimeRanges
+                .Where(t => t.Channel.ServerId == serverId)
+                .ToListAsync())
+                .GroupBy(t => t.ChannelId)
+                .ToDictionary(g => g.Key, g => new IntRangeSet(g.ToList()));
+
+
+
+        string titleString = "# Recorded Times";
+        List<string> fields = [titleString];
+        List<string> pages = [];
+        int lines = 1;
+        foreach (var channelId in timespans.Keys)
+        {
+            string field = $"## <#{channelId}>";
+            lines += 2;
+            foreach (var range in timespans[channelId].Ranges)
+            {
+                field += $"\n{Utility.FormatTime.DiscordLong(range.Start)} - {Utility.FormatTime.DiscordLong(range.End)}";
+                lines++;
+            }
+            fields.Add(field);
+            if (lines > 10)
+            {
+                pages.Add(string.Join("\n\n", fields));
+                fields = [titleString];
+                lines = 1;
+            }
+        }
+        if (fields.Count != 0) pages.Add(string.Join("\n\n", fields));
+
+        var baseEmbed = new EmbedProperties()
             .WithTitle("Message Log Status")
-            .WithDescription(desc)
             .WithColor(Globals.Colors.DarkGreen);
+
+        (var embed, var actionRow) = EmbedPaginator.Register(new(baseEmbed, pages, 0, Context.Interaction));
 
         return new()
         {
-            Embeds = [embed]
+            Embeds = [embed],
+            Components = [actionRow]
         };
 
     }

@@ -30,6 +30,7 @@ public partial class DatabaseContext : DbContext
         {
             channel.Property(obj => obj.Id).ValueGeneratedNever();
             channel.HasOne(c => c.Server).WithMany().HasForeignKey(c => c.ServerId);
+            channel.HasMany(c => c.RecordedTimespans).WithOne(t => t.Channel).HasForeignKey(t => t.ChannelId);
         });
         modelBuilder.Entity<Message>(message =>
         {
@@ -53,11 +54,10 @@ public partial class DatabaseContext : DbContext
         modelBuilder.Entity<Server>(server =>
         {
             server.Property(obj => obj.Id).ValueGeneratedNever();
-            server.HasMany(s => s.RecordedTimespans).WithOne(t => t.Server);
         });
         modelBuilder.Entity<TimeRange>(timeRange =>
         {
-            timeRange.HasOne(t => t.Server).WithMany(s => s.RecordedTimespans).HasForeignKey(t => t.ServerId);
+            timeRange.HasOne(t => t.Channel).WithMany(c => c.RecordedTimespans).HasForeignKey(t => t.ChannelId);
         });
         modelBuilder.Entity<User>(user =>
         {
@@ -174,8 +174,7 @@ public partial class DatabaseContext : DbContext
     {
         Server server = new()
         {
-            Id = serverId,
-            RecordedTimespans = []
+            Id = serverId
         };
         return Servers.Upsert(server).RunAndReturn().First();
     }
