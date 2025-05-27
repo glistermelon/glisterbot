@@ -20,8 +20,12 @@ public partial class Stats
     public partial class Graph
     {
         [SubSlashCommand("phrase-frequency", "How many times a phrase has been said over time.")]
-        public async Task<InteractionMessageProperties> ExecutePhraseFrequencyGraph(string phrase, TimeUnit timeUnit)
-        {
+        public async Task<InteractionMessageProperties> ExecutePhraseFrequencyGraph(
+            string phrase,
+            TimeUnit timeUnit,
+            [SlashCommandParameter(Name = "user", Description = "Only check messages from a specific user")]
+            User? user = null
+        ) {
             if (Context.Guild == null) return "";
 
             if (phrase.Length > 100) return new()
@@ -31,6 +35,7 @@ public partial class Stats
             };
 
             string regex = phrase.All(char.IsLetter) ? $@"\y(?:{phrase})\y" : $@"(?<=\s|^){Regex.Escape(phrase)}(?=\s|$)";
+            string userSql = user == null ? "" : $@"AND ""USER_ID""={user.Id}";
             string raw_sql = $@"
                 WITH phrase_matches AS (
                     SELECT
@@ -46,7 +51,7 @@ public partial class Stats
                         ) AS match,
                             ""TIMESTAMP""
                         FROM ""MESSAGES""
-                        WHERE ""SERVER_ID""={Context.Guild.Id}
+                        WHERE ""SERVER_ID""={Context.Guild.Id} {userSql}
                     )
                 )
                 SELECT time_window, COUNT(*) AS count
