@@ -11,6 +11,8 @@ public static class Globals
     {
         public static readonly NetCord.Color EmbedNone = new(0x22212c);
         public static readonly NetCord.Color DarkGreen = new(0x1f8b4c);
+        public static readonly NetCord.Color Green = new(0x25db34);
+        public static readonly NetCord.Color Red = new(0xdb2525);
         public static class Graph
         {
             public static readonly ScottPlot.Color Blue = ScottPlot.Color.FromHex("#1f76b3");
@@ -28,7 +30,7 @@ public static class Globals
         GraphFontName = "DejaVuSans";
         Fonts.AddFontFile(
             name: GraphFontName,
-            path: "files/DejaVuSans.ttf"
+            path: $"{Configuration.FileDir}/DejaVuSans.ttf"
         );
     }
 }

@@ -34,8 +34,8 @@ public class EmbedPaginator : ComponentInteractionModule<ButtonInteractionContex
         return (
             GetEmbed(state),
             [
-                new ButtonProperties($"prev:{state.Interaction.Id}", "◀", ButtonStyle.Primary),
-                new ButtonProperties($"next:{state.Interaction.Id}", "▶", ButtonStyle.Primary)
+                new ButtonProperties($"pagination-prev:{state.Interaction.Id}", "◀", ButtonStyle.Primary),
+                new ButtonProperties($"pagination-next:{state.Interaction.Id}", "▶", ButtonStyle.Primary)
             ]
         );
     }
@@ -51,7 +51,7 @@ public class EmbedPaginator : ComponentInteractionModule<ButtonInteractionContex
             });
     }
 
-    [ComponentInteraction("prev")]
+    [ComponentInteraction("pagination-prev")]
     public async Task PrevPage(ulong interactionId)
     {
         var state = activePaginators[interactionId];
@@ -74,7 +74,7 @@ public class EmbedPaginator : ComponentInteractionModule<ButtonInteractionContex
         await state.Interaction.ModifyResponseAsync(m => m.Embeds = [GetEmbed(state)]);
     }
     
-    [ComponentInteraction("next")]
+    [ComponentInteraction("pagination-next")]
     public async Task NextPage(ulong interactionId)
     {
         var state = activePaginators[interactionId];

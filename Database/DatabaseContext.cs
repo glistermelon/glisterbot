@@ -64,6 +64,7 @@ public partial class DatabaseContext : DbContext
             user.Property(obj => obj.Id).ValueGeneratedNever();
             user.HasMany(u => u.Messages).WithOne(m => m.User).HasForeignKey(m => m.UserId);
             user.HasMany(u => u.ProfanityRecords).WithOne(r => r.User).HasForeignKey(r => r.UserId);
+            user.HasOne(u => u.MainAccount).WithMany().HasForeignKey(u => u.MainAccountId);
         });
         modelBuilder.Entity<ProfanityRecord>(record =>
         {
@@ -72,7 +73,6 @@ public partial class DatabaseContext : DbContext
             record.HasOne(r => r.Server).WithMany().HasForeignKey(r => r.ServerId);
             record.HasOne(r => r.User).WithMany(u => u.ProfanityRecords).HasForeignKey(r => r.UserId);
         });
-
     }
 
     // FOR SAFETY, PREVENTING RECURSION, ETC
@@ -185,7 +185,8 @@ public partial class DatabaseContext : DbContext
         {
             Id = netcordUser.Id,
             Username = netcordUser.Username,
-            Deleted = netcordUser.Username == "Deleted User" || netcordUser.Username.StartsWith("deleted_user_")
+            Deleted = netcordUser.Username == "Deleted User" || netcordUser.Username.StartsWith("deleted_user_"),
+            MainAccount = null
         };
         return Users.Upsert(user).RunAndReturn().First();
     }

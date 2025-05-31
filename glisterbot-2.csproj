@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <Target Name="SymlinkFiles" AfterTargets="Build">
-    <Exec Command="ln -sfn &quot;$(ProjectDir)files&quot; &quot;$(OutDir)files&quot;" />
+    <Exec Command="ln -sfn &quot;$(ProjectDir)Files&quot; &quot;$(OutDir)Files&quot;" />
   </Target>
 
 </Project>

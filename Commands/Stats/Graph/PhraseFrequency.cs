@@ -34,8 +34,25 @@ public partial class Stats
                 Flags = MessageFlags.Ephemeral
             };
 
+            DatabaseContext dbContext = new();
+
+            string userSql1, userSql2;
+            if (user == null)
+            {
+                userSql1 = "";
+                userSql2 = "";
+            }
+            else
+            {
+                var dbUser = dbContext.GetOrAddToDbUser(user);
+                userSql1 = @"JOIN ""USERS"" ON ""MESSAGES"".""USER_ID"" = ""USERS"".""ID""";
+                userSql2 = $@"
+                    AND (
+                        ""USER_ID""={dbUser.Id}
+                        OR ""USERS"".""MAIN_ACCOUNT_ID""={dbUser.Id}
+                    )";
+            }
             string regex = phrase.All(char.IsLetter) ? $@"\y(?:{phrase})\y" : $@"(?<=\s|^){Regex.Escape(phrase)}(?=\s|$)";
-            string userSql = user == null ? "" : $@"AND ""USER_ID""={user.Id}";
             string raw_sql = $@"
                 WITH phrase_matches AS (
                     SELECT
@@ -51,7 +68,8 @@ public partial class Stats
                         ) AS match,
                             ""TIMESTAMP""
                         FROM ""MESSAGES""
-                        WHERE ""SERVER_ID""={Context.Guild.Id} {userSql}
+                        {userSql1}
+                        WHERE ""SERVER_ID""={Context.Guild.Id} {userSql2}
                     )
                 )
                 SELECT time_window, COUNT(*) AS count
@@ -59,13 +77,12 @@ public partial class Stats
                 GROUP BY phrase, time_window
                 ORDER BY time_window, phrase";
             var regexParam = new NpgsqlParameter("regex", regex);
-
-            var results = await new DatabaseContext().Database
+            var results = await dbContext.Database
                 .SqlQueryRaw<PhraseFrequencyGraphQueryResult>(raw_sql, regexParam)
                 .ToListAsync();
 
-            // remove last result because if its the
-            // current time window, which has not fully elasped yet
+            // remove last result if its the current
+            // time window, which has not fully elasped yet
             var latestTime = timeUnit switch
             {
                 TimeUnit.Day => DateTime.Now.AddDays(-1),
@@ -78,7 +95,12 @@ public partial class Stats
 
             var baseEmbed = new EmbedProperties()
                 .WithTitle($"\"{phrase}\" Usage Frequency")
-                .WithColor(Globals.Colors.DarkGreen);
+                .WithColor(Globals.Colors.DarkGreen)
+                .WithAuthor(new()
+                {
+                    IconUrl = user?.GetAvatarUrl()?.ToString(),
+                    Name = user == null ? "All users" : user.Username
+                });
 
             if (results.Count == 0) return new()
             {

@@ -25,7 +25,7 @@ public class ProfanityLogHandler(DatabaseContext dbContext)
 
     public static void Initialize()
     {
-        string json = File.ReadAllText("files/profanity.json");
+        string json = File.ReadAllText($"{Configuration.FileDir}/profanity.json");
         profanity = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(json)
             ?? throw new Exception("Failed to initialize ProfanityLogHandler.profanity");
     }
@@ -46,8 +46,12 @@ public class ProfanityLogHandler(DatabaseContext dbContext)
                         )
                     ) AS match
                     FROM ""MESSAGES""
+                    JOIN ""USERS"" ON ""MESSAGES"".""USER_ID"" = ""USERS"".""ID""
                     WHERE ""SERVER_ID""='{dbServer.Id}'
-                        AND ""USER_ID""='{dbUser.Id}'
+                        AND (
+                            ""USER_ID""={dbUser.Id}
+                            OR ""USERS"".""MAIN_ACCOUNT_ID""={dbUser.Id}
+                        )
                 )
             )
             SELECT phrase, COUNT(*) AS count

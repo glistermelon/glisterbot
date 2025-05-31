@@ -14,7 +14,7 @@ public partial class Stats
     {
         var dbContext = new DatabaseContext();
         var mentions = await dbContext.Messages
-            .Where(m => m.UserId == user.Id)
+            .Where(m => m.UserId == user.Id || m.User.MainAccountId == user.Id)
             .SelectMany(m => m.UsersMentioned)
             .GroupBy(u => u.Id)
             .Select(g => new { UserId = g.Key, Count = g.Count() })

@@ -23,7 +23,7 @@ urlencode_od_awk () {
 # This isn't publicly available at the moment.
 # I doubt anyone is going to be trying to download these anyway, but reach out if you want them.
 FILE_SERVER_URL="https://glisterbot.glisterbyte.com"
-FILE_DIR="files"
+FILE_DIR="Files"
 
 read -p "Enter username for file server: " USERNAME
 read -p "Enter password for file server: " PASSWORD
