@@ -21,11 +21,20 @@ public class WordbombPatternManager
 
     private static void UpdatePhraseCache(string langShort)
     {
-        string json = File.ReadAllText($"{Configuration.FileDir}/wordbomb/words/{langShort}.json");
+        string json = File.ReadAllText($"{Configuration.StaticFilesDir}/wordbomb/words/{langShort}.json");
         var words = JsonConvert.DeserializeObject<List<string>>(json)
             ?? throw new Exception($"Failed to update pattern cache for language {langShort}");
 
-        string directory = $"{Configuration.FileDir}/wordbomb/words/{langShort}";
+        if (!Directory.Exists($"{Configuration.DynamicFilesDir}/wordbomb"))
+        {
+            Directory.CreateDirectory($"{Configuration.DynamicFilesDir}/wordbomb");
+        }
+        if (!Directory.Exists($"{Configuration.DynamicFilesDir}/wordbomb/words"))
+        {
+            Directory.CreateDirectory($"{Configuration.DynamicFilesDir}/wordbomb/words");
+        }
+
+        string directory = $"{Configuration.DynamicFilesDir}/wordbomb/words/{langShort}";
         if (Directory.Exists(directory))
         {
             Directory.Delete(directory, true);
@@ -61,11 +70,11 @@ public class WordbombPatternManager
 
     public static void InitializePhraseCache()
     {
-        foreach (var file in Directory.GetFiles($"{Configuration.FileDir}/wordbomb/words"))
+        foreach (var file in Directory.GetFiles($"{Configuration.StaticFilesDir}/wordbomb/words"))
         {
             if (!file.EndsWith(".json")) continue;
             string lang = file.Substring(file.Length - 7, 2);
-            if (!Directory.Exists($"{Configuration.FileDir}/wordbomb/words/{lang}"))
+            if (!Directory.Exists($"{Configuration.DynamicFilesDir}/wordbomb/words/{lang}"))
             {
                 // Right now I'm too lazy to set up an ILogger
                 Console.WriteLine($"Updating phrase cache for language {lang}");
@@ -78,7 +87,7 @@ public class WordbombPatternManager
     {
         this.difficulty = difficulty;
         this.language = language;
-        patterns = Directory.GetFiles($"{Configuration.FileDir}/wordbomb/words/{language.ToShortString()}/{difficulty.ToLowerString()}")
+        patterns = Directory.GetFiles($"{Configuration.DynamicFilesDir}/wordbomb/words/{language.ToShortString()}/{difficulty.ToLowerString()}")
             .Where(file => file.EndsWith(".json"))
             .Select(file => file.Substring(file.Length - 7, 2))
             .ToList();
@@ -87,7 +96,7 @@ public class WordbombPatternManager
     public WordbombPattern GetRandomPattern()
     {
         string pattern = patterns[new Random().Next(patterns.Count - 1)];
-        string json = File.ReadAllText($"{Configuration.FileDir}/wordbomb/words/{language.ToShortString()}/{difficulty.ToLowerString()}/{pattern}.json");
+        string json = File.ReadAllText($"{Configuration.DynamicFilesDir}/wordbomb/words/{language.ToShortString()}/{difficulty.ToLowerString()}/{pattern}.json");
         var words = JsonConvert.DeserializeObject<List<string>>(json)
             ?? throw new Exception($"Failed to initialize pattern manager with args {difficulty.ToLowerString()} {language}");
         return new(pattern, words);

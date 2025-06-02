@@ -33,7 +33,7 @@ public static class Globals
         GraphFontName = "DejaVuSans";
         Fonts.AddFontFile(
             name: GraphFontName,
-            path: $"{Configuration.FileDir}/DejaVuSans.ttf"
+            path: $"{Configuration.StaticFilesDir}/DejaVuSans.ttf"
         );
     }
 }

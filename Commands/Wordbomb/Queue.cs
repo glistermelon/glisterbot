@@ -56,7 +56,7 @@ public class WordbombQueue(RestClient restClient) : ComponentInteractionModule<B
             .WithThumbnail(new("attachment://image.png"));
 
         var attachment = new AttachmentProperties("image.png", new FileStream(
-            $"{Configuration.FileDir}/wordbomb/bomb.png", FileMode.Open, FileAccess.Read
+            $"{Configuration.StaticFilesDir}/wordbomb/bomb.png", FileMode.Open, FileAccess.Read
         ));
 
         ActionRowProperties actionRow = [
@@ -188,7 +188,7 @@ public class WordbombQueue(RestClient restClient) : ComponentInteractionModule<B
     [ComponentInteraction("wordbomb-help")]
     public async Task SendHelpMessage()
     {
-        HelpDescription ??= File.ReadAllText($"{Configuration.FileDir}/wordbomb/help.md");
+        HelpDescription ??= File.ReadAllText($"{Configuration.StaticFilesDir}/wordbomb/help.md");
         await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
             new()
             {

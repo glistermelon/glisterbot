@@ -23,7 +23,7 @@ public class ProfanityLogHandler(DatabaseContext dbContext)
 
     public static void Initialize()
     {
-        string json = File.ReadAllText($"{Configuration.FileDir}/profanity.json");
+        string json = File.ReadAllText($"{Configuration.StaticFilesDir}/profanity.json");
         profanity = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(json)
             ?? throw new Exception("Failed to initialize ProfanityLogHandler.profanity");
     }

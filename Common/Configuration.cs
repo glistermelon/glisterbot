@@ -4,7 +4,8 @@ public class Configuration
 {
     public DiscordConfiguration Discord { get; set; }
     public DatabaseConfiguration Database { get; set; }
-    public static string FileDir { get; set; } = "Files";
+    public static string StaticFilesDir { get; set; } = "Files";
+    public static string DynamicFilesDir { get; set; } = "Cache";
 }
 
 public class DiscordConfiguration

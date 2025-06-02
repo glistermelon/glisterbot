@@ -28,6 +28,13 @@ new ConfigurationBuilder()
     .Build()
     .Bind(configuration);
 
+// Create dynamic data directory if it doesn't exist
+
+if (!Directory.Exists(Configuration.DynamicFilesDir))
+{
+    Directory.CreateDirectory(Configuration.DynamicFilesDir);
+}
+
 // Initialize wordbomb cache
 
 WordbombPatternManager.InitializePhraseCache();
