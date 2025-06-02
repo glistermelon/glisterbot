@@ -1,4 +1,3 @@
-using MessageLogging;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;

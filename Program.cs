@@ -10,8 +10,8 @@ using GlisterBot.Commands;
 using NetCord;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
-using MessageLogging;
 using Events;
+using GlisterBot.Commands.Wordbomb;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -27,6 +27,10 @@ new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build()
     .Bind(configuration);
+
+// Initialize wordbomb cache
+
+WordbombPatternManager.InitializePhraseCache();
 
 // Initialize graph font
 

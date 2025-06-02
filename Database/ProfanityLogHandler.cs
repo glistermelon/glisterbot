@@ -1,10 +1,8 @@
 #pragma warning disable 8618
 
-using MessageLogging.DataTypes;
+using DatabaseObject;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-
-namespace MessageLogging;
 
 class ProfanityUpdateQueryResult {
     public string Phrase { get; set; }

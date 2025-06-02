@@ -27,7 +27,7 @@ public partial class Config : ApplicationCommandModule<ApplicationCommandContext
 
             DatabaseContext dbContext = new();
 
-            MessageLogging.DataTypes.User? dbUser = await dbContext
+            DatabaseObject.User? dbUser = await dbContext
                 .Users.Where(u => u.Id == Context.User.Id).FirstOrDefaultAsync();
             if (dbUser?.MainAccountId != null) return new()
             {

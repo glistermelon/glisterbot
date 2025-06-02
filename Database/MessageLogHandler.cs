@@ -1,11 +1,9 @@
-using MessageLogging.DataTypes;
+using DatabaseObject;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
-
-namespace MessageLogging;
 
 public class MessageLogHandler
 {
@@ -34,7 +32,7 @@ public class MessageLogHandler
 
     private async Task CommitUpdatedData(
         ulong latestTimestamp,
-        DataTypes.Channel dbChannel,
+        DatabaseObject.Channel dbChannel,
         IntRange timeRange,
         IDbContextTransaction transaction
     ) {

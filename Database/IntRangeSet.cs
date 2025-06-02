@@ -1,4 +1,4 @@
-using MessageLogging.DataTypes;
+using DatabaseObject;
 
 public class IntRangeSet
 {

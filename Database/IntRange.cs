@@ -1,6 +1,6 @@
 // inclusive [Start, End]
 
-using MessageLogging.DataTypes;
+using DatabaseObject;
 
 public enum OverlapStatus
 {

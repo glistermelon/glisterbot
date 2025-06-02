@@ -7,12 +7,15 @@ public static class Globals
     public static readonly ulong DISCORD_EPOCH = 1420070400;
     public static Configuration Configuration { get; set; }
 
+    public static string AlphabetLower { get; } = "abcdefghijklmnopqrstuvwxyz";
+
     public static class Colors
     {
         public static readonly NetCord.Color EmbedNone = new(0x22212c);
         public static readonly NetCord.Color DarkGreen = new(0x1f8b4c);
         public static readonly NetCord.Color Green = new(0x25db34);
         public static readonly NetCord.Color Red = new(0xdb2525);
+        public static readonly NetCord.Color Orange = new(0xdb8325);
         public static class Graph
         {
             public static readonly ScottPlot.Color Blue = ScottPlot.Color.FromHex("#1f76b3");

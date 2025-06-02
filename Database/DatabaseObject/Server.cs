@@ -1,4 +1,4 @@
-namespace MessageLogging.DataTypes;
+namespace DatabaseObject;
 
 public class Server
 {

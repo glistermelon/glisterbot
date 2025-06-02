@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using MessageLogging.DataTypes;
+using DatabaseObject;
 using NetCord.Rest;
 using System.Text.RegularExpressions;
 
@@ -13,6 +13,10 @@ public partial class DatabaseContext : DbContext
     public DbSet<TimeRange> TimeRanges { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<ProfanityRecord> ProfanityRecords { get; set; }
+    public DbSet<WordbombFail> WordbombFails { get; set; }
+    public DbSet<WordbombGame> WordbombGames { get; set; }
+    public DbSet<WordbombPass> WordbombPasses { get; set; }
+    public DbSet<WordbombResult> WordbombResults { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder
@@ -72,6 +76,28 @@ public partial class DatabaseContext : DbContext
             record.Property(r => r.Id).ValueGeneratedOnAdd();
             record.HasOne(r => r.Server).WithMany().HasForeignKey(r => r.ServerId);
             record.HasOne(r => r.User).WithMany(u => u.ProfanityRecords).HasForeignKey(r => r.UserId);
+        });
+        modelBuilder.Entity<WordbombFail>(f =>
+        {
+            f.HasKey(f => f.Id);
+            f.HasOne(f => f.Game).WithMany(g => g.Fails).HasForeignKey(f => f.GameId);
+        });
+        modelBuilder.Entity<WordbombGame>(g =>
+        {
+            g.HasKey(g => g.Id);
+            g.HasMany(g => g.Fails).WithOne(f => f.Game).HasForeignKey(f => f.GameId);
+            g.HasMany(g => g.Passes).WithOne(p => p.Game).HasForeignKey(p => p.GameId);
+            g.HasMany(g => g.Results).WithOne(r => r.Game).HasForeignKey(r => r.GameId);
+        });
+        modelBuilder.Entity<WordbombPass>(p =>
+        {
+            p.HasKey(p => p.Id);
+            p.HasOne(p => p.Game).WithMany(g => g.Passes).HasForeignKey(p => p.GameId);
+        });
+        modelBuilder.Entity<WordbombResult>(r =>
+        {
+            r.HasKey(r => r.Id);
+            r.HasOne(r => r.Game).WithMany(g => g.Results).HasForeignKey(r => r.GameId);
         });
     }
 
