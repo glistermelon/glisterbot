@@ -1,3 +1,5 @@
+#pragma warning disable 8618
+
 namespace DatabaseObject;
 
 public class WordbombFail
