@@ -134,6 +134,7 @@ public class WordbombGame(
         }
         else
         {
+            usedWords.Add(message.Content.Trim().ToLower());
             await restClient.AddMessageReactionAsync(
                 channelId,
                 message.Id,
@@ -206,11 +207,8 @@ public class WordbombGame(
             dbGame.Passes.Add(pass);
         }
 
-        if (updatePlayerIndex)
-        {
-            currentPlayerIndex++;
-            if (currentPlayerIndex == players.Count) currentPlayerIndex = 0;
-        }
+        if (updatePlayerIndex) currentPlayerIndex++;
+        if (currentPlayerIndex == players.Count) currentPlayerIndex = 0;
     }
 
     public async Task Play()
@@ -241,6 +239,8 @@ public class WordbombGame(
                     .WithImage(avatarUrl)
             ])
         );
+
+        ChannelManager.MarkAsFree(channelId);
 
         foreach (var player in allPlayers)
         {
