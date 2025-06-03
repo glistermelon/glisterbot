@@ -3,4 +3,8 @@ obj/
 
 appsettings.json
 
+# x and x/ because sometimes I symlink these
+Files
 Files/
+Cache
+Cache/
