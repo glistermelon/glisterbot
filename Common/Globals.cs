@@ -26,6 +26,18 @@ public static class Globals
         }
     }
 
+    public static class MediaTypes
+    {
+        public static readonly string Jpeg = "image/jpeg";
+        public static readonly string Png = "image/png";
+        public static readonly string Svg = "image/svg+xml";
+        public static readonly string Tiff = "image/tiff";
+        public static readonly string Webp = "image/webp";
+        public static readonly string[] ImageTypes = [
+            Jpeg, Png, Svg, Tiff, Webp
+        ];
+    }
+
     public static string GraphFontName { get; private set; }
 
     public static void initializePlotFont()

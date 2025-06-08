@@ -62,7 +62,8 @@ builder.Services
                 | GatewayIntents.GuildMessages
                 | GatewayIntents.MessageContent
                 | GatewayIntents.GuildPresences
-                | GatewayIntents.GuildUsers;
+                | GatewayIntents.GuildUsers
+                | GatewayIntents.GuildMessageReactions;
             options.Presence = new(UserStatusType.Online)
             {
                 Activities = [new UserActivityProperties("2025", UserActivityType.Watching) { }]

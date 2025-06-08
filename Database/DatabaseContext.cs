@@ -10,6 +10,9 @@ public partial class DatabaseContext : DbContext
     public DbSet<Message> Messages { get; set; }
     public DbSet<Reaction> Reactions { get; set; }
     public DbSet<Server> Servers { get; set; }
+    public DbSet<Starboard> Starboards { get; set; }
+    public DbSet<StarboardEmoji> StarboardEmojis { get; set; }
+    public DbSet<StarboardPin> StarboardPins { get; set; }
     public DbSet<TimeRange> TimeRanges { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<ProfanityRecord> ProfanityRecords { get; set; }
@@ -98,6 +101,22 @@ public partial class DatabaseContext : DbContext
         {
             r.HasKey(r => r.Id);
             r.HasOne(r => r.Game).WithMany(g => g.Results).HasForeignKey(r => r.GameId);
+        });
+        modelBuilder.Entity<Starboard>(b =>
+        {
+            b.HasKey(b => b.Id);
+            b.HasMany(b => b.AllEmojis).WithOne(e => e.Starboard).HasForeignKey(e => e.StarboardId);
+            b.HasMany(b => b.Pins).WithOne(p => p.Starboard).HasForeignKey(p => p.StarboardId);
+        });
+        modelBuilder.Entity<StarboardEmoji>(e =>
+        {
+            e.HasKey(e => e.Id);
+            e.HasOne(e => e.Starboard).WithMany(b => b.AllEmojis).HasForeignKey(e => e.StarboardId);
+        });
+        modelBuilder.Entity<StarboardPin>(p =>
+        {
+            p.HasKey(p => p.Id);
+            p.HasOne(p => p.Starboard).WithMany(b => b.Pins).HasForeignKey(p => p.StarboardId);
         });
     }
 

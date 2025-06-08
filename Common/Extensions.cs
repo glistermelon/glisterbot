@@ -31,3 +31,11 @@ public static class EmbedPropertiesExtension
         };
     }
 }
+
+public static class RestMessageExtension
+{
+    public static string GetJumpUrl(this RestMessage message, ulong guildId)
+    {
+        return $"https://discordapp.com/channels/{guildId}/{message.ChannelId}/{message.Id}";
+    }
+}
