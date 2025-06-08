@@ -20,19 +20,28 @@ public partial class Stats
     public partial class Graph
     {
         [SubSlashCommand("phrase-frequency", "How many times a phrase has been said over time.")]
-        public async Task<InteractionMessageProperties> ExecutePhraseFrequencyGraph(
+        public async Task ExecutePhraseFrequencyGraph(
             string phrase,
             TimeUnit timeUnit,
             [SlashCommandParameter(Name = "user", Description = "Only check messages from a specific user")]
             User? user = null
-        ) {
-            if (Context.Guild == null) return "";
+        )
+        {
+            if (Context.Guild == null) return;
 
-            if (phrase.Length > 100) return new()
+            phrase = phrase.Trim();
+
+            if (phrase.Length > 100)
             {
-                Content = "That phrase is too long! Please pick a shorter phrase.",
-                Flags = MessageFlags.Ephemeral
-            };
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                {
+                    Content = "That phrase is too long! Please pick a shorter phrase.",
+                    Flags = MessageFlags.Ephemeral
+                });
+                return;
+            }
+
+            await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
 
             DatabaseContext dbContext = new();
 
@@ -102,19 +111,24 @@ public partial class Stats
                     Name = user == null ? "All users" : user.Username
                 });
 
-            if (results.Count == 0) return new()
+            if (results.Count == 0)
             {
-                Embeds = [baseEmbed.WithDescription(
-                    "That phrase has never been said before! You could be the first... <:Smoothtroll:960789594658451497>"
-                )]
-            };
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                {
+                    Embeds = [baseEmbed.WithDescription(
+                        "That phrase has never been said before! You could be the first... <:Smoothtroll:960789594658451497>"
+                    )]
+                });
+                return;
+            }
 
             var graph = DrawGraph(results, timeUnit, latestTime);
-            return new()
+
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
             {
                 Embeds = [baseEmbed.WithImage(new("attachment://image.png"))],
                 Attachments = [new AttachmentProperties("image.png", graph)]
-            };
+            });
         }
 
         private static MemoryStream DrawGraph(List<PhraseFrequencyGraphQueryResult> queryResults, TimeUnit timeUnit, DateTime latestTime)
