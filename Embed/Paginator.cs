@@ -54,7 +54,7 @@ public class EmbedPaginator : ComponentInteractionModule<ButtonInteractionContex
     [ComponentInteraction("pagination-prev")]
     public async Task PrevPage(ulong interactionId)
     {
-        var state = activePaginators[interactionId];
+        if (!activePaginators.TryGetValue(interactionId, out var state)) return;
         if (state == null || Context.User.Id != state.Interaction.User.Id) return;
         if (state.CurrentPage == 0)
         {
@@ -77,7 +77,7 @@ public class EmbedPaginator : ComponentInteractionModule<ButtonInteractionContex
     [ComponentInteraction("pagination-next")]
     public async Task NextPage(ulong interactionId)
     {
-        var state = activePaginators[interactionId];
+        if (!activePaginators.TryGetValue(interactionId, out var state)) return;
         if (state == null || Context.User.Id != state.Interaction.User.Id) return;
         if (state.CurrentPage + 1 >= state.Pages.Count)
         {
