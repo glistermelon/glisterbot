@@ -45,7 +45,7 @@ public static class MessageEmbed
         );
     }
 
-    public static async Task<(EmbedProperties, ActionRowProperties?)> Create(
+    public static (EmbedProperties, ActionRowProperties?) Create(
         RestMessage message,
         ulong guildId
     )

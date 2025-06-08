@@ -45,7 +45,7 @@ public static class DbStarboardExtensions
     {
         if (starboard.Pins.Any(p => p.MessageId == message.Id)) return false;
 
-        (var embed, var actionRow) = await MessageEmbed.Create(message, guildId);
+        (var embed, var actionRow) = MessageEmbed.Create(message, guildId);
 
         string? imageUrl = message.Attachments
             .FirstOrDefault(a => Globals.MediaTypes.ImageTypes.Contains(a.ContentType))

@@ -18,6 +18,7 @@
     <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.375" />
     <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.375" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="NodaTime" Version="3.2.2" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageReference Include="ScottPlot" Version="5.0.55" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
