@@ -73,46 +73,39 @@ public class WordbombGame(
             new MessageProperties().WithEmbeds([promptEmbed])
         );
 
-        var cancel = new CancellationTokenSource();
         Message? message = null;
-        Func<Message, Task> handler = null!;
-        handler = (
-            async m =>
+        EventListener<Message> eventListener = new(async (m, listener) =>
+        {
+            if (m.CreatedAt <= sentMessage.CreatedAt || m.Author.Id != player.User.Id) return;
+            string word = m.Content.Trim().ToLower();
+            if (phrase.Matches(word))
             {
-                if (m.CreatedAt <= sentMessage.CreatedAt || m.Author.Id != player.User.Id) return;
-                string word = m.Content.Trim().ToLower();
-                if (phrase.Matches(word))
+                if (!usedWords.Contains(word))
                 {
-                    if (!usedWords.Contains(word))
-                    {
-                        message = m;
-                        cancel.Cancel();
-                        MessageCreateHandler.Handlers.Remove(handler);
-                        player.RemainingLetters.RemoveAll(c => word.Contains(c));
-                    }
-                    else
-                    {
-                        await restClient.AddMessageReactionAsync(
-                            channelId,
-                            m.Id,
-                            new ReactionEmojiProperties("\U0001F502") // :repeat_one:
-                        );
-                    }
+                    message = m;
+                    listener.Deactivate();
+                    player.RemainingLetters.RemoveAll(c => word.Contains(c));
                 }
                 else
                 {
                     await restClient.AddMessageReactionAsync(
                         channelId,
                         m.Id,
-                        new ReactionEmojiProperties("\u274C") // :x:
+                        new ReactionEmojiProperties("\U0001F502") // :repeat_one:
                     );
                 }
             }
-        );
-        MessageCreateHandler.Handlers.Add(handler);
-        try { await Task.Delay(TimeSpan.FromSeconds(10), cancel.Token); }
-        catch (TaskCanceledException) { }
-        MessageCreateHandler.Handlers.Remove(handler);
+            else
+            {
+                await restClient.AddMessageReactionAsync(
+                    channelId,
+                    m.Id,
+                    new ReactionEmojiProperties("\u274C") // :x:
+                );
+            }
+        });
+        eventListener.Activate();
+        await eventListener.WaitForDeactivation(10);
 
         bool updatePlayerIndex = true;
         var embed = new EmbedProperties();
