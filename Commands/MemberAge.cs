@@ -3,9 +3,8 @@ using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using NodaTime;
-using NodaTime.Extensions;
 
-public class WordbombCommandModule : ApplicationCommandModule<ApplicationCommandContext>
+public class MemberAgeCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand("member-age", "See how long someone has been a server member for real.")]
     public async Task<InteractionMessageProperties> ExecuteMemberAge(User user)

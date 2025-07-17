@@ -51,6 +51,10 @@ new DatabaseContext().Database.EnsureCreated();
 
 ProfanityLogHandler.Initialize();
 
+// Initialize server tag listing
+
+ServerListingHandler.Initialize();
+
 // Set up Discord bot
 
 builder.Services
@@ -72,7 +76,8 @@ builder.Services
     )
     .AddApplicationCommands()
     .AddGatewayEventHandlers(typeof(GuildCreateEventHandler).Assembly)
-    .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
+    .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>()
+    .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>();
 
 await builder.Build()
     .AddModules(typeof(Stats).Assembly)

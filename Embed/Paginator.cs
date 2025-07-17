@@ -2,59 +2,123 @@ using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
 
-public class EmbedPaginatorState
+public abstract class PaginatedEmbedState(int currentPage, int pageCount, Interaction interaction)
+{
+    public int CurrentPage { get; set; } = currentPage;
+    public int PageCount { get; set; } = pageCount;
+    public Interaction Interaction { get; set; } = interaction;
+
+    protected EmbedFooterProperties GetFooter()
+    {
+        var user = Interaction.User;
+        return new()
+        {
+            Text = $"{user.Username} - Page {CurrentPage + 1}/{PageCount}",
+            IconUrl = user.GetAvatarUrl()?.ToString()
+        };
+    }
+}
+
+public class SimplePaginatedEmbedState : PaginatedEmbedState
 {
     public List<EmbedProperties> Pages { get; }
-    public int CurrentPage { get; set; }
-    public Interaction Interaction { get; }
 
-    public EmbedPaginatorState(List<EmbedProperties> pages, int currentPage, Interaction interaction)
+    public SimplePaginatedEmbedState(List<EmbedProperties> pages, int currentPage, Interaction interaction)
+        : base(currentPage, pages.Count, interaction)
     {
         Pages = pages;
-        CurrentPage = currentPage;
-        Interaction = interaction;
     }
 
-    public EmbedPaginatorState(EmbedProperties baseEmbed, List<string> pages, int currentPage, Interaction interaction)
+    public SimplePaginatedEmbedState(EmbedProperties baseEmbed, List<string> pages, int currentPage, Interaction interaction)
+        : base(currentPage, pages.Count, interaction)
     {
         Pages = [.. pages.Select(desc => baseEmbed.Clone().WithDescription(desc))];
-        CurrentPage = currentPage;
-        Interaction = interaction;
+    }
+
+    public virtual EmbedProperties GetEmbed()
+    {
+        return Pages[CurrentPage].WithFooter(GetFooter());
     }
 
 }
 
+public abstract class LazyPaginatedEmbedState : PaginatedEmbedState
+{
+    public LazyPaginatedEmbedState(int currentPage, int pageCount, Interaction interaction)
+        : base(currentPage, pageCount, interaction)
+    { }
+
+    public abstract Task<(EmbedProperties, List<IComponentProperties>)> LoadPage();
+    public abstract EmbedProperties GetLoadingEmbed();
+
+    public async Task<(EmbedProperties, List<IComponentProperties>)> GetEmbedAsync()
+    {
+        var result = await LoadPage();
+        result.Item1 = result.Item1.WithFooter(GetFooter());
+        return result;
+    }
+}
+
 public class EmbedPaginator : ComponentInteractionModule<ButtonInteractionContext>
 {
-    private static readonly Dictionary<ulong, EmbedPaginatorState> activePaginators = [];
+    private static readonly Dictionary<ulong, SimplePaginatedEmbedState> simplePaginators = [];
+    private static readonly Dictionary<ulong, LazyPaginatedEmbedState> lazyPaginators = [];
 
-    public static (EmbedProperties, ActionRowProperties) Register(EmbedPaginatorState state)
+    private static ActionRowProperties GetPageControlComponent(PaginatedEmbedState state)
     {
-        activePaginators[state.Interaction.Id] = state;
-        return (
-            GetEmbed(state),
-            [
-                new ButtonProperties($"pagination-prev:{state.Interaction.Id}", "◀", ButtonStyle.Primary),
-                new ButtonProperties($"pagination-next:{state.Interaction.Id}", "▶", ButtonStyle.Primary)
-            ]
-        );
+        return new ActionRowProperties([
+            new ButtonProperties($"pagination-prev:{state.Interaction.Id}", "◀", ButtonStyle.Primary),
+            new ButtonProperties($"pagination-next:{state.Interaction.Id}", "▶", ButtonStyle.Primary)
+        ]);
     }
 
-    private static EmbedProperties GetEmbed(EmbedPaginatorState state)
+    public static (EmbedProperties, ActionRowProperties) Register(SimplePaginatedEmbedState state)
     {
-        var user = state.Interaction.User;
-        return state.Pages[state.CurrentPage]
-            .WithFooter(new()
-            {
-                Text = $"{user.Username} - Page {state.CurrentPage + 1}/{state.Pages.Count}",
-                IconUrl = user.GetAvatarUrl()?.ToString()
-            });
+        simplePaginators[state.Interaction.Id] = state;
+        return (state.GetEmbed(), GetPageControlComponent(state));
+    }
+
+    public static async Task<(EmbedProperties, List<IComponentProperties>)> RegisterLazy(LazyPaginatedEmbedState state)
+    {
+        lazyPaginators[state.Interaction.Id] = state;
+        List<IComponentProperties> components = [GetPageControlComponent(state)];
+        (var embed, var moreComponents) = await state.GetEmbedAsync();
+        components.AddRange(moreComponents);
+        return (embed, components);
+    }
+
+    public void GetState(
+        ulong interactionId,
+        out PaginatedEmbedState? state,
+        out SimplePaginatedEmbedState? simpleState,
+        out LazyPaginatedEmbedState? lazyState
+    )
+    {
+        state = null;
+        lazyState = null;
+
+        simplePaginators.TryGetValue(interactionId, out simpleState);
+        if (simpleState != null)
+        {
+            state = simpleState;
+            return;
+        }
+
+        lazyPaginators.TryGetValue(interactionId, out lazyState);
+        if (lazyState != null)
+        {
+            state = lazyState;
+            return;   
+        }
     }
 
     [ComponentInteraction("pagination-prev")]
     public async Task PrevPage(ulong interactionId)
     {
-        if (!activePaginators.TryGetValue(interactionId, out var state)) return;
+        PaginatedEmbedState? state;
+        SimplePaginatedEmbedState? simpleState;
+        LazyPaginatedEmbedState? lazyState;
+        GetState(interactionId, out state, out simpleState, out lazyState);
         if (state == null || Context.User.Id != state.Interaction.User.Id) return;
         if (state.CurrentPage == 0)
         {
@@ -71,15 +135,33 @@ public class EmbedPaginator : ComponentInteractionModule<ButtonInteractionContex
         }
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredModifyMessage);
         state.CurrentPage--;
-        await state.Interaction.ModifyResponseAsync(m => m.Embeds = [GetEmbed(state)]);
+        if (simpleState != null)
+        {
+            await state.Interaction.ModifyResponseAsync(m => m.Embeds = [simpleState.GetEmbed()]);
+        }
+        else
+        {
+            if (lazyState == null) return;
+            await state.Interaction.ModifyResponseAsync(m => m.Embeds = [lazyState.GetLoadingEmbed()]);
+            List<IComponentProperties> components = [GetPageControlComponent(state)];
+            (var embed, var moreComponents) = await lazyState.GetEmbedAsync();
+            components.AddRange(moreComponents);
+            await state.Interaction.ModifyResponseAsync(m => {
+                m.Embeds = [embed];
+                m.Components = components;
+            });
+        }   
     }
-    
+
     [ComponentInteraction("pagination-next")]
     public async Task NextPage(ulong interactionId)
     {
-        if (!activePaginators.TryGetValue(interactionId, out var state)) return;
+        PaginatedEmbedState? state;
+        SimplePaginatedEmbedState? simpleState;
+        LazyPaginatedEmbedState? lazyState;
+        GetState(interactionId, out state, out simpleState, out lazyState);
         if (state == null || Context.User.Id != state.Interaction.User.Id) return;
-        if (state.CurrentPage + 1 >= state.Pages.Count)
+        if (state.CurrentPage + 1 >= state.PageCount)
         {
             await Context.Interaction.SendResponseAsync(
                 InteractionCallback.Message(
@@ -94,6 +176,21 @@ public class EmbedPaginator : ComponentInteractionModule<ButtonInteractionContex
         }
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredModifyMessage);
         state.CurrentPage++;
-        await state.Interaction.ModifyResponseAsync(m => m.Embeds = [GetEmbed(state)]);
+        if (simpleState != null)
+        {
+            await state.Interaction.ModifyResponseAsync(m => m.Embeds = [simpleState.GetEmbed()]);
+        }
+        else
+        {
+            if (lazyState == null) return;
+            await state.Interaction.ModifyResponseAsync(m => m.Embeds = [lazyState.GetLoadingEmbed()]);
+            List<IComponentProperties> components = [GetPageControlComponent(state)];
+            (var embed, var moreComponents) = await lazyState.GetEmbedAsync();
+            components.AddRange(moreComponents);
+            await state.Interaction.ModifyResponseAsync(m => {
+                m.Embeds = [embed];
+                m.Components = components;
+            });
+        }
     }
 }

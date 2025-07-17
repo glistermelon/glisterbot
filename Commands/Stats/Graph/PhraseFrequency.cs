@@ -33,11 +33,13 @@ public partial class Stats
 
             if (phrase.Length > 100)
             {
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                {
-                    Content = "That phrase is too long! Please pick a shorter phrase.",
-                    Flags = MessageFlags.Ephemeral
-                });
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties()
+                    {
+                        Content = "That phrase is too long! Please pick a shorter phrase.",
+                        Flags = MessageFlags.Ephemeral
+                    }
+                ));
                 return;
             }
 
@@ -61,8 +63,7 @@ public partial class Stats
                         OR ""USERS"".""MAIN_ACCOUNT_ID""={dbUser.Id}
                     )";
             }
-            string regex = phrase.All(char.IsLetter) ? $@"\y(?:{phrase})\y" : $@"(?<=\s|^){Regex.Escape(phrase)}(?=\s|$)";
-            string raw_sql = $@"
+            string rawSql = $@"
                 WITH phrase_matches AS (
                     SELECT
                         LOWER(match) AS phrase,
@@ -85,9 +86,9 @@ public partial class Stats
                 FROM phrase_matches
                 GROUP BY phrase, time_window
                 ORDER BY time_window, phrase";
-            var regexParam = new NpgsqlParameter("regex", regex);
+            var regexParam = new NpgsqlParameter("regex", RegexHelper.GetPhraseRegex(phrase));
             var results = await dbContext.Database
-                .SqlQueryRaw<PhraseFrequencyGraphQueryResult>(raw_sql, regexParam)
+                .SqlQueryRaw<PhraseFrequencyGraphQueryResult>(rawSql, regexParam)
                 .ToListAsync();
 
             // remove last result if its the current
