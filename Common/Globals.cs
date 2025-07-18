@@ -40,6 +40,8 @@ public static class Globals
 
     public static string GraphFontName { get; private set; }
 
+    public static readonly ulong RedditDeletionChannelId = 1282429875747295282;
+
     public static void initializePlotFont()
     {
         GraphFontName = "DejaVuSans";

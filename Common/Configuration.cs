@@ -6,6 +6,7 @@ public class Configuration
     public DatabaseConfiguration Database { get; set; }
     public static string StaticFilesDir { get; set; } = "Files";
     public static string DynamicFilesDir { get; set; } = "Cache";
+    public static int RedditDeletionListenerPort { get; set; }
 }
 
 public class DiscordConfiguration

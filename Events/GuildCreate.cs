@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
 
@@ -11,11 +12,21 @@ public class GuildCreateEventHandler(ILogger<GuildCreateEventHandler> logger) : 
     {
         var server = args.Guild;
         if (server == null) return;
-        MessageLogHandler handler = new()
+
+        foreach (var channel in await server.GetChannelsAsync())
         {
-            Logger = logger
-        };
-        logger.LogInformation("{}", server.Name);
-        await handler.UpdateServer(server);
+            if (channel.Id == Globals.RedditDeletionChannelId)
+            {
+                _ = Task.Run(() => new RedditDeletionListener((TextChannel)channel).ListenAsync());
+                break;
+            }
+        }
+
+        // MessageLogHandler handler = new()
+        // {
+        //     Logger = logger
+        // };
+        // logger.LogInformation("{}", server.Name);
+        // await handler.UpdateServer(server);
     }
 }

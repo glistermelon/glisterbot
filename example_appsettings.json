@@ -4,5 +4,13 @@
     },
     "Database": {
         "ConnectionString": "Host=127.0.0.1; Port=5432; Database=glisterbot2; Username=postgres; Include Error Detail=True;"
+    },
+    "RedditDeletionListenerPort": 8000,
+    "reddit": {
+        "username": "",
+        "password": "",
+        "client_id": "",
+        "client_secret": "",
+        "user_agent": ""
     }
 }
