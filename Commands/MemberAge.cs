@@ -47,7 +47,7 @@ public class MemberAgeCommandModule : ApplicationCommandModule<ApplicationComman
     }
 
     [SlashCommand("oldest-members", "Rank members by how long they've been here.")]
-    public async Task<InteractionMessageProperties> ExecuteOldestMembers()
+    public async Task<InteractionMessageProperties> ExecuteOldestMembers(bool includeBots = false)
     {
         if (Context.Guild == null) return "";
         List<(ulong UserId, ulong MinTimestamp)> results = (await new DatabaseContext().Messages
@@ -61,6 +61,14 @@ public class MemberAgeCommandModule : ApplicationCommandModule<ApplicationComman
             .ToListAsync())
             .Select(g => (g.UserId, g.MinTimestamp))
             .ToList();
+
+        var serverMembers = await Context.Guild.GetUsersAsync().ToArrayAsync();
+        results.RemoveAll(r => !serverMembers.Select(u => u.Id).Contains(r.UserId));
+        if (!includeBots)
+        {
+            var botMembers = serverMembers.Where(u => u.IsBot);
+            results.RemoveAll(r => botMembers.Select(u => u.Id).Contains(r.UserId));
+        }
 
         var serverMemberIds = await Context.Guild.GetUsersAsync().Select(u => u.Id).ToArrayAsync();
         results.RemoveAll(r => !serverMemberIds.Contains(r.UserId));
