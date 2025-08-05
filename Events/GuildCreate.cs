@@ -22,11 +22,11 @@ public class GuildCreateEventHandler(ILogger<GuildCreateEventHandler> logger) : 
             }
         }
 
-        // MessageLogHandler handler = new()
-        // {
-        //     Logger = logger
-        // };
-        // logger.LogInformation("{}", server.Name);
-        // await handler.UpdateServer(server);
+        MessageLogHandler handler = new()
+        {
+            Logger = logger
+        };
+        logger.LogInformation("{}", server.Name);
+        await handler.UpdateServer(server);
     }
 }
