@@ -51,10 +51,6 @@ new DatabaseContext().Database.EnsureCreated();
 
 ProfanityLogHandler.Initialize();
 
-// Initialize server tag listing
-
-ServerListingHandler.Initialize();
-
 // Set up Discord bot
 
 builder.Services

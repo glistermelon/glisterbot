@@ -19,9 +19,9 @@ public static class StarboardManager
         dbStarboards.RemoveAll(b => !b.AllEmojis.Any(e => e.Matches(args.Emoji)));
         foreach (var dbStarboard in dbStarboards)
         {
-            if (dbStarboard.ChannelId == args.ChannelId) continue;
+            if (dbStarboard.ChannelId != args.ChannelId) continue;
             var message = await restClient.GetMessageAsync(args.ChannelId, args.MessageId);
-            if (message == null) continue;
+            if (message == null || message.Author.IsBot) continue;
             if (
                 (message.Reactions.FirstOrDefault(r => dbStarboard.AllEmojis.Any(e => e.Matches(r.Emoji)))?.Count ?? 0)
                     < dbStarboard.MinimumReactionCount

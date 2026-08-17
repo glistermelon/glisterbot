@@ -1,3 +1,4 @@
+using System.Net;
 using DatabaseObject;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -65,34 +66,43 @@ public class MessageLogHandler
         int logged = 0;
         int totalLogged = 0;
         ulong latestTimestamp = 0;
+        bool forbidden = false;
 
         var transaction = await dbContext.Database.BeginTransactionAsync();
 
-        await foreach (var message in channel.GetMessagesAsync(
-            new()
-            {
-                BatchSize = 100,
-                Direction = PaginationDirection.After,
-                From = Utility.TimestampToSnowflake(timeRange.Start)
-            }
-        ))
+        try
         {
-            var dbMessage = await dbContext.GetOrAddToDbMessage(message, channel, server.Id);
-            latestTimestamp = dbMessage.Timestamp;
-
-            logged++;
-            totalLogged++;
-            if (logged == 500 || latestTimestamp > timeRange.End)
+        await foreach (var message in channel.GetMessagesAsync(
+                new()
+                {
+                    BatchSize = 100,
+                    Direction = PaginationDirection.After,
+                    From = Utility.TimestampToSnowflake(timeRange.Start)
+                }
+            ))
             {
-                await CommitUpdatedData(latestTimestamp, dbChannel, timeRange, transaction);
-                transaction = await dbContext.Database.BeginTransactionAsync();
-                Logger.LogInformation("\t\t\t[ML] [{}] {} messages logged", server.Id, totalLogged);
-                logged = 0;
-                if (latestTimestamp > timeRange.End) break;
+                var dbMessage = await dbContext.GetOrAddToDbMessage(message, channel, server.Id);
+                latestTimestamp = dbMessage.Timestamp;
+
+                logged++;
+                totalLogged++;
+                if (logged == 500 || latestTimestamp > timeRange.End)
+                {
+                    await CommitUpdatedData(latestTimestamp, dbChannel, timeRange, transaction);
+                    transaction = await dbContext.Database.BeginTransactionAsync();
+                    Logger.LogInformation("\t\t\t[ML] [{}] {} messages logged", server.Id, totalLogged);
+                    logged = 0;
+                    if (latestTimestamp > timeRange.End) break;
+                }
             }
         }
+        catch (RestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            Logger.LogInformation("\t\t\t[ML] [{}] skipping channel (forbidden)", server.Id);
+            forbidden = true;
+        }
 
-        if (logged != 0)
+        if (logged != 0 && !forbidden)
         {
             await CommitUpdatedData(latestTimestamp, dbChannel, timeRange, transaction);
             Logger.LogInformation("\t\t\t[ML] [{}] {} messages logged", server.Id, totalLogged);
@@ -109,6 +119,8 @@ public class MessageLogHandler
         Logger.LogInformation("[ML] Updating logs for server {} '{}'", server.Id, server.Name);
         foreach (var channel in await server.GetChannelsAsync())
         {
+            if (channel is not TextChannel || channel is VoiceGuildChannel) continue;
+
             var dbChannel = dbContext.GetOrAddToDbChannel(channel.Id, server.Id);
             dbContext.SaveChanges();
 
@@ -117,7 +129,6 @@ public class MessageLogHandler
             Logger.LogInformation("\t[ML] [{}] Logging channel: {} '{}'", server.Id, channel.Id, channel.Name);
             foreach (IntRange range in unrecordedTime.Ranges)
             {
-                if (channel is not TextChannel) continue;
                 Logger.LogInformation(
                     "\t\t[ML] [{}] Logging over time range {} ({}) - {} ({})",
                     server.Id,

@@ -84,7 +84,7 @@ public class ProfanityLogHandler(DatabaseContext dbContext)
 
     public async Task UpdateUserIfNecessary(User dbUser, Server dbServer)
     {
-        ProfanityRecord? record = await dbContext.ProfanityRecords.FirstOrDefaultAsync();
+        ProfanityRecord? record = await dbContext.ProfanityRecords.Where(r => r.UserId == dbUser.Id).FirstOrDefaultAsync();
         if (record == null || Utility.CurrentTimestamp() - record.LastUpdated >= UPDATE_INTERVAL)
         {
             await UpdateUser(dbUser, dbServer);

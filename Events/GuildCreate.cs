@@ -13,15 +13,6 @@ public class GuildCreateEventHandler(ILogger<GuildCreateEventHandler> logger) : 
         var server = args.Guild;
         if (server == null) return;
 
-        foreach (var channel in await server.GetChannelsAsync())
-        {
-            if (channel.Id == Globals.RedditDeletionChannelId)
-            {
-                _ = Task.Run(() => new RedditDeletionListener((TextChannel)channel).ListenAsync());
-                break;
-            }
-        }
-
         MessageLogHandler handler = new()
         {
             Logger = logger

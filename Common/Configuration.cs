@@ -4,9 +4,10 @@ public class Configuration
 {
     public DiscordConfiguration Discord { get; set; }
     public DatabaseConfiguration Database { get; set; }
+    public GelbooruConfiguration Gelbooru { get; set; }
+    public Rule34Configuration Rule34 { get; set; }
     public static string StaticFilesDir { get; set; } = "Files";
     public static string DynamicFilesDir { get; set; } = "Cache";
-    public static int RedditDeletionListenerPort { get; set; }
 }
 
 public class DiscordConfiguration
@@ -17,4 +18,14 @@ public class DiscordConfiguration
 public class DatabaseConfiguration
 {
     public string ConnectionString { get; set; }
+}
+
+public class GelbooruConfiguration
+{
+    public string CredentialParameters { get; set; }
+}
+
+public class Rule34Configuration
+{
+    public string CredentialParameters { get; set; }
 }
